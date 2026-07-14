@@ -1,0 +1,19 @@
+{
+  "name": "rewardchat",
+  "private": true,
+  "version": "0.0.1",
+  "workspaces": [
+    "merchant-app",
+    "customer-liff",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:merchant": "npm run dev --workspace=merchant-app",
+    "dev:liff": "npm run dev --workspace=customer-liff",
+    "build:merchant": "npm run build --workspace=merchant-app",
+    "build:liff": "npm run build --workspace=customer-liff",
+    "supabase": "supabase",
+    "db:reset": "supabase db reset",
+    "gen:types": "supabase gen types typescript --local > packages/shared/src/database.types.ts"
+  }
+}
