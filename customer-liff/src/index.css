@@ -122,10 +122,18 @@
   * {
     @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
-    }
   html {
     @apply font-sans;
+    /* Bigger, comfortable base type. Everything sized in rem scales with this. */
+    font-size: 17px;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    }
+  @media (min-width: 640px) {
+    html { font-size: 18px; }
+    }
+  body {
+    @apply bg-background text-foreground antialiased;
+    line-height: 1.55;
     }
 }

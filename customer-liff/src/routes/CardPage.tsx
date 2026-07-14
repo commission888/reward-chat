@@ -2,7 +2,6 @@ import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useCustomer } from "@/customer/CustomerProvider";
 import { useRewards } from "@/customer/useRewards";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -12,12 +11,13 @@ export default function CardPage() {
   const rewardsState = useRewards(qrToken);
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showQr, setShowQr] = useState(false);
 
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6">
-        <Skeleton className="h-40 w-72 rounded-xl" />
-        <p className="text-sm text-muted-foreground">Joining {shop?.name ?? "the"} loyalty program...</p>
+        <Skeleton className="h-44 w-full max-w-md rounded-3xl" />
+        <p className="text-base text-muted-foreground">กำลังเข้าสู่ระบบสะสมแต้ม {shop?.name ?? ""}...</p>
       </div>
     );
   }
@@ -25,8 +25,10 @@ export default function CardPage() {
   if (error || !customer || !qrToken) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
-        <p className="text-sm text-destructive">{error ?? "Something went wrong."}</p>
-        <Button onClick={() => refresh()}>Try again</Button>
+        <p className="text-base text-destructive">{error ?? "เกิดข้อผิดพลาด"}</p>
+        <Button size="lg" onClick={() => refresh()}>
+          ลองใหม่
+        </Button>
       </div>
     );
   }
@@ -41,117 +43,145 @@ export default function CardPage() {
     try {
       await rewardsState.redeem(rewardId);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Could not redeem");
+      setActionError(err instanceof Error ? err.message : "แลกไม่สำเร็จ");
     } finally {
       setRedeemingId(null);
     }
   }
 
-  return (
-    <div className="mx-auto flex min-h-screen w-full max-w-sm flex-col gap-6 bg-background p-5">
-      <div className="text-center">
-        <p className="text-sm font-medium text-muted-foreground">{shop?.name ?? "Loyalty Card"}</p>
-      </div>
+  function handleRefresh() {
+    refresh();
+    rewardsState.reload();
+  }
 
-      {/* Member + points + loyalty QR */}
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-3">
-          <Avatar>
-            <AvatarImage src={customer.picture_url ?? undefined} alt={customer.display_name ?? "Customer"} />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <p className="font-medium text-foreground">{customer.display_name ?? "Member"}</p>
-            <p className="text-sm text-muted-foreground">
-              <span className="text-lg font-semibold text-primary">{customer.points_balance}</span> points
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto flex w-full max-w-md flex-col gap-8 px-5 py-8 sm:py-10">
+        {/* Points hero */}
+        <header className="flex flex-col gap-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              {shop?.name ?? "บัตรสะสมแต้ม"}
+            </p>
+            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={handleRefresh}>
+              รีเฟรช
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Avatar className="size-14">
+              <AvatarImage src={customer.picture_url ?? undefined} alt={customer.display_name ?? "Customer"} />
+              <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+            </Avatar>
+            <p className="text-xl font-semibold text-foreground">{customer.display_name ?? "สมาชิก"}</p>
+          </div>
+
+          <div className="rounded-3xl bg-primary px-6 py-7 text-primary-foreground shadow-sm">
+            <p className="text-sm font-medium text-primary-foreground/80">แต้มสะสม</p>
+            <p className="mt-1 flex items-baseline gap-2">
+              <span className="text-6xl font-bold leading-none tracking-tight">{customer.points_balance}</span>
+              <span className="text-xl font-medium text-primary-foreground/80">แต้ม</span>
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              refresh();
-              rewardsState.reload();
-            }}
-          >
-            Refresh
-          </Button>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center gap-3 pb-6">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <QRCodeSVG value={qrToken} size={176} fgColor="#0F172A" bgColor="#FFFFFF" />
-          </div>
-          <p className="text-center text-xs text-muted-foreground">
-            Show this code to staff to earn points.
-          </p>
-        </CardContent>
-      </Card>
+        </header>
 
-      {/* Pending coupons */}
-      {pendingCoupons.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-foreground">Your coupons</h2>
-          {pendingCoupons.map((c) => (
-            <Card key={c.id} className="border-primary/40 bg-primary/5">
-              <CardContent className="flex flex-col items-center gap-2 py-5">
-                <p className="text-sm font-medium text-foreground">{c.reward_name}</p>
-                <p className="font-mono text-2xl font-bold tracking-widest text-primary">{c.code}</p>
-                <p className="text-center text-xs text-muted-foreground">
-                  Show this code to staff. Waiting for staff to approve ({c.points_cost} points).
+        {/* Pending coupons */}
+        {pendingCoupons.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold text-foreground">คูปองของฉัน</h2>
+            {pendingCoupons.map((c) => (
+              <div
+                key={c.id}
+                className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5 px-5 py-6 text-center"
+              >
+                <p className="text-base font-medium text-foreground">{c.reward_name}</p>
+                <p className="font-mono text-4xl font-bold tracking-[0.2em] text-primary">{c.code}</p>
+                <p className="text-sm text-muted-foreground">
+                  แสดงรหัสนี้ให้พนักงาน • รออนุมัติ ({c.points_cost} แต้ม)
                 </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Rewards catalog */}
-      <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-foreground">Rewards</h2>
-        {actionError && <p className="text-sm text-destructive">{actionError}</p>}
-        {rewardsState.loading && <Skeleton className="h-20 w-full rounded-xl" />}
-        {!rewardsState.loading && rewardsState.rewards.length === 0 && (
-          <p className="text-sm text-muted-foreground">No rewards available yet.</p>
+              </div>
+            ))}
+          </section>
         )}
-        {rewardsState.rewards.map((reward) => {
-          const affordable = customer.points_balance >= reward.points_cost;
-          return (
-            <Card key={reward.id}>
-              <CardContent className="flex items-center justify-between gap-3 py-4">
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">{reward.name}</p>
+
+        {/* Rewards catalog */}
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold text-foreground">แลกของรางวัล</h2>
+          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+          {rewardsState.loading && <Skeleton className="h-24 w-full rounded-2xl" />}
+          {!rewardsState.loading && rewardsState.rewards.length === 0 && (
+            <p className="rounded-2xl border border-border bg-card px-5 py-6 text-center text-base text-muted-foreground">
+              ยังไม่มีของรางวัลในตอนนี้
+            </p>
+          )}
+          {rewardsState.rewards.map((reward) => {
+            const affordable = customer.points_balance >= reward.points_cost;
+            return (
+              <div
+                key={reward.id}
+                className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card px-5 py-4"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-semibold text-foreground">{reward.name}</p>
                   {reward.description && (
                     <p className="text-sm text-muted-foreground">{reward.description}</p>
                   )}
-                  <p className="mt-1 text-sm font-medium text-primary">{reward.points_cost} points</p>
+                  <p className="mt-1 text-base font-semibold text-primary">{reward.points_cost} แต้ม</p>
                 </div>
                 <Button
-                  size="sm"
+                  size="lg"
+                  className="shrink-0"
                   disabled={!affordable || redeemingId !== null}
                   onClick={() => handleRedeem(reward.id)}
                 >
-                  {redeemingId === reward.id ? "..." : affordable ? "Redeem" : "Not enough"}
+                  {redeemingId === reward.id ? "..." : affordable ? "แลก" : "แต้มไม่พอ"}
                 </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+              </div>
+            );
+          })}
+        </section>
 
-      {/* Coupon history */}
-      {pastCoupons.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-foreground">History</h2>
-          {pastCoupons.map((c) => (
-            <div key={c.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
-              <span className="text-foreground">{c.reward_name}</span>
-              <span className={c.status === "completed" ? "text-muted-foreground" : "text-destructive"}>
-                {c.status === "completed" ? "Redeemed" : "Rejected"}
-              </span>
+        {/* Earn points QR — secondary, collapsible */}
+        <section className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => setShowQr((v) => !v)}
+            className="flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 text-left"
+          >
+            <span className="flex flex-col">
+              <span className="text-base font-semibold text-foreground">รับแต้ม</span>
+              <span className="text-sm text-muted-foreground">ให้พนักงานสแกนเพื่อสะสมแต้ม</span>
+            </span>
+            <span className="text-sm font-medium text-primary">{showQr ? "ซ่อน" : "แสดง QR"}</span>
+          </button>
+          {showQr && (
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card px-5 py-6">
+              <div className="rounded-2xl border border-border bg-white p-4">
+                <QRCodeSVG value={qrToken} size={200} fgColor="#0F172A" bgColor="#FFFFFF" />
+              </div>
+              <p className="text-center text-sm text-muted-foreground">แสดงโค้ดนี้ให้พนักงานเพื่อรับแต้ม</p>
             </div>
-          ))}
-        </div>
-      )}
+          )}
+        </section>
+
+        {/* History */}
+        {pastCoupons.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h2 className="text-lg font-semibold text-foreground">ประวัติ</h2>
+            {pastCoupons.map((c) => (
+              <div
+                key={c.id}
+                className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-base"
+              >
+                <span className="text-foreground">{c.reward_name}</span>
+                <span className={c.status === "completed" ? "text-muted-foreground" : "text-destructive"}>
+                  {c.status === "completed" ? "ใช้แล้ว" : "ปฏิเสธแล้ว"}
+                </span>
+              </div>
+            ))}
+          </section>
+        )}
+      </div>
     </div>
   );
 }
