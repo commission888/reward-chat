@@ -10,6 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { THAI_BANKS } from "@/lib/thaiBanks";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive"> = {
   credited: "default",
@@ -139,14 +147,24 @@ export default function PaymentSettingsPage() {
 
             <div className="flex flex-wrap gap-3">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="slip_receiver_account_type">Account type code</Label>
-                <Input
-                  id="slip_receiver_account_type"
-                  className="w-40"
-                  placeholder="e.g. 01004"
+                <Label htmlFor="slip_receiver_account_type">Bank</Label>
+                <Select
                   value={form.slip_receiver_account_type}
-                  onChange={(e) => setForm((f) => ({ ...f, slip_receiver_account_type: e.target.value }))}
-                />
+                  onValueChange={(value) =>
+                    setForm((f) => ({ ...f, slip_receiver_account_type: value }))
+                  }
+                >
+                  <SelectTrigger id="slip_receiver_account_type" className="w-72">
+                    <SelectValue placeholder="Select bank" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {THAI_BANKS.map((bank) => (
+                      <SelectItem key={bank.code} value={bank.code}>
+                        {bank.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="slip_receiver_account_number">Account number</Label>
