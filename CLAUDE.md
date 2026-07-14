@@ -68,6 +68,10 @@ There's no Supabase Auth provider for LINE. Customer identity is established one
 
 Everything from `customer-liff` goes through Edge Functions with the anon key, never direct authenticated table writes — there is no Postgres JWT for "this LINE user."
 
+## customer-liff runtime entry contract — it only works opened from LINE
+
+`customer-liff/src/lib/liffIdentity.ts`'s `resolveLineIdentity()` reads **both `shop_id` and `liff_id` from the URL query string** (`?shop_id=...&liff_id=...`) and throws if either is missing — there is no production fallback (the `VITE_DEV_*` env defaults are dev-only, and prod builds ship with `VITE_LIFF_MOCK=false`). So opening the deployed URL directly shows "Missing shop_id" *by design*; the app is only reachable through a shop's LIFF link. **The LIFF app's Endpoint URL configured in the LINE console must therefore carry both params**, e.g. `https://<liff-host>/?shop_id=<shop uuid>&liff_id=<that app's LIFF id>` — the shop_id scopes the app to a tenant, and liff_id is what `liff.init()` needs. A shop's LINE credentials (`line_channel_id`/`secret`/`access_token`) and `liff_id` are written via `update-shop-line-settings`, which is `requireAdmin`-gated: **only that shop's own `admin` can set them — a super_admin cannot** (they aren't scoped to a shop, so `requireAdmin` rejects them). The `merchant-app` LINE-settings UI (`routes/LineSettingsPage.tsx`) also surfaces the ready-made webhook URL to paste into the LINE channel.
+
 ## Loyalty QR cards
 
 `loyalty_cards.qr_token` is a signed HS256 JWT (hand-rolled on Web Crypto in `_shared/jwt-qr.ts`, not a library — payload is just `{cid, sid, iat}`, no expiry by design so the card stays stable across app opens). Because there's no expiry, **`apply-points` must check the token against the customer's current card row** (`revoked_at is null` and the presented token string matches the stored `qr_token`) before crediting — a valid signature alone only proves the token was issued by us *at some point*, not that it's still current.
