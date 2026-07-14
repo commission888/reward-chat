@@ -33,6 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // result of the *latest* requested load, regardless of which promise
     // settles last.
     let requestId = 0;
+    // Tracks the currently signed-in user so we can tell a real identity change
+    // (login/logout) apart from a background token refresh for the same user.
+    let currentUserId: string | null = null;
 
     async function loadProfile(nextSession: Session | null) {
       const thisRequestId = ++requestId;
@@ -59,13 +62,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
+      currentUserId = data.session?.user.id ?? null;
       setSession(data.session);
       loadProfile(data.session);
     });
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      // supabase-js re-fires SIGNED_IN on tab refocus and TOKEN_REFRESHED
+      // periodically. Flipping `loading` back to true on those would unmount
+      // the whole app (AppShell shows a full-screen loader while loading),
+      // wiping any unsaved form state on every background refresh. Only raise
+      // the loader when the signed-in identity actually changes (login/logout).
+      const nextUserId = nextSession?.user.id ?? null;
+      if (nextUserId !== currentUserId) {
+        currentUserId = nextUserId;
+        setLoading(true);
+      }
       setSession(nextSession);
-      setLoading(true);
       loadProfile(nextSession);
     });
 

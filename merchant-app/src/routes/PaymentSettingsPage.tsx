@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
@@ -29,6 +29,10 @@ export default function PaymentSettingsPage() {
     slip_receiver_account_number: "",
   });
 
+  // Seed the form from the server exactly once so a background refetch (e.g. React
+  // Query's refetch-on-window-focus) can't clobber unsaved edits.
+  const seeded = useRef(false);
+
   const { data: shop } = useQuery({
     queryKey: ["shop-payment-settings", profile?.shop_id],
     queryFn: async () => {
@@ -46,7 +50,8 @@ export default function PaymentSettingsPage() {
   });
 
   useEffect(() => {
-    if (shop) {
+    if (shop && !seeded.current) {
+      seeded.current = true;
       setForm({
         slip2go_api_secret: shop.slip2go_api_secret ?? "",
         slip_receiver_account_type: shop.slip_receiver_account_type ?? "",

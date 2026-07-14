@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
@@ -25,6 +25,11 @@ export default function LineSettingsPage() {
     liff_id: "",
   });
 
+  // Seed the form from the server exactly once. A background refetch (e.g. React
+  // Query's refetch-on-window-focus when the admin tabs back after copying a value
+  // from the LINE console) must not clobber whatever they've typed but not saved yet.
+  const seeded = useRef(false);
+
   const { data: shop } = useQuery({
     queryKey: ["shop", profile?.shop_id],
     queryFn: async () => {
@@ -40,7 +45,8 @@ export default function LineSettingsPage() {
   });
 
   useEffect(() => {
-    if (shop) {
+    if (shop && !seeded.current) {
+      seeded.current = true;
       setForm({
         line_channel_id: shop.line_channel_id ?? "",
         line_channel_secret: shop.line_channel_secret ?? "",
