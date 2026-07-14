@@ -11,6 +11,8 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/dashboard", label: "Dashboard" },
     { to: "/staff", label: "Staff" },
     { to: "/customers", label: "Customers" },
+    { to: "/rewards", label: "Rewards" },
+    { to: "/redemptions", label: "Redemptions" },
     { to: "/knowledge-base", label: "Knowledge Base" },
     { to: "/settings/line", label: "LINE Settings" },
     { to: "/settings/payments", label: "Payment Settings" },
@@ -19,6 +21,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/dashboard", label: "Dashboard" },
     { to: "/scan", label: "Scan" },
     { to: "/customers", label: "Customers" },
+    { to: "/redemptions", label: "Redemptions" },
   ],
 };
 

@@ -15,6 +15,8 @@ import ScanPage from "@/routes/ScanPage";
 import KnowledgeBasePage from "@/routes/KnowledgeBasePage";
 import LineSettingsPage from "@/routes/LineSettingsPage";
 import PaymentSettingsPage from "@/routes/PaymentSettingsPage";
+import RewardsPage from "@/routes/RewardsPage";
+import RedemptionsPage from "@/routes/RedemptionsPage";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +74,22 @@ function App() {
                 element={
                   <RequireRole roles={["staff", "admin"]}>
                     <ScanPage />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/rewards"
+                element={
+                  <RequireRole roles={["admin"]}>
+                    <RewardsPage />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/redemptions"
+                element={
+                  <RequireRole roles={["admin", "staff"]}>
+                    <RedemptionsPage />
                   </RequireRole>
                 }
               />

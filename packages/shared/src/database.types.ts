@@ -348,6 +348,115 @@ export type Database = {
           },
         ]
       }
+      redemptions: {
+        Row: {
+          code: string
+          completed_at: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          points_cost: number
+          reward_id: string | null
+          reward_name: string
+          shop_id: string
+          staff_user_id: string | null
+          status: string
+        }
+        Insert: {
+          code: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          points_cost: number
+          reward_id?: string | null
+          reward_name: string
+          shop_id: string
+          staff_user_id?: string | null
+          status?: string
+        }
+        Update: {
+          code?: string
+          completed_at?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          points_cost?: number
+          reward_id?: string | null
+          reward_name?: string
+          shop_id?: string
+          staff_user_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redemptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemptions_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemptions_staff_user_id_fkey"
+            columns: ["staff_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          points_cost: number
+          shop_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          points_cost: number
+          shop_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          points_cost?: number
+          shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shops: {
         Row: {
           created_at: string
@@ -476,6 +585,14 @@ export type Database = {
       }
       apply_points_system: {
         Args: { p_customer_id: string; p_delta: number; p_reason?: string }
+        Returns: number
+      }
+      cancel_redemption: {
+        Args: { p_redemption_id: string }
+        Returns: undefined
+      }
+      complete_redemption: {
+        Args: { p_redemption_id: string }
         Returns: number
       }
       current_profile: {
