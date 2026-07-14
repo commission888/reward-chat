@@ -16,6 +16,23 @@
 
 const DEV_BYPASS_TOKEN = import.meta.env.VITE_DEV_BYPASS_TOKEN as string | undefined;
 const DEV_LINE_USER_ID_KEY = "rewardchat_dev_line_user_id";
+const SHOP_ID_KEY = "rewardchat_shop_id";
+const LIFF_ID_KEY = "rewardchat_liff_id";
+
+// shop_id/liff_id arrive as URL query params (from the LIFF Endpoint URL), but
+// liff.login() redirects through LINE's OAuth and returns to the bare endpoint
+// URL, dropping our custom params. Persist them the first time we see them and
+// fall back to the stored copy after the login round-trip. localStorage (not
+// sessionStorage) because the LINE in-app browser can start a fresh session on
+// the OAuth return; a later open with real params in the URL overwrites it.
+function readParam(params: URLSearchParams, name: string, storageKey: string): string | undefined {
+  const fromUrl = params.get(name);
+  if (fromUrl) {
+    localStorage.setItem(storageKey, fromUrl);
+    return fromUrl;
+  }
+  return localStorage.getItem(storageKey) ?? undefined;
+}
 
 function getDevLineUserId(): string {
   let id = localStorage.getItem(DEV_LINE_USER_ID_KEY);
@@ -35,8 +52,8 @@ export type LineIdentity = {
 
 export async function resolveLineIdentity(): Promise<LineIdentity> {
   const params = new URLSearchParams(window.location.search);
-  const shopId = params.get("shop_id") ?? import.meta.env.VITE_DEV_SHOP_ID;
-  const liffId = params.get("liff_id") ?? import.meta.env.VITE_DEV_LIFF_ID;
+  const shopId = readParam(params, "shop_id", SHOP_ID_KEY) ?? import.meta.env.VITE_DEV_SHOP_ID;
+  const liffId = readParam(params, "liff_id", LIFF_ID_KEY) ?? import.meta.env.VITE_DEV_LIFF_ID;
 
   if (!shopId) {
     throw new Error("Missing shop_id. Open this app via your shop's LIFF link.");
@@ -62,7 +79,12 @@ export async function resolveLineIdentity(): Promise<LineIdentity> {
   const liff = (await import("@line/liff")).default;
   await liff.init({ liffId });
   if (!liff.isLoggedIn()) {
-    liff.login();
+    // Ask LINE to return to this app with our params intact (the storage
+    // fallback above covers the case where LINE still strips them).
+    const returnUrl = `${window.location.origin}${window.location.pathname}?shop_id=${encodeURIComponent(
+      shopId
+    )}&liff_id=${encodeURIComponent(liffId)}`;
+    liff.login({ redirectUri: returnUrl });
     // liff.login() redirects away; execution resumes on the next page load.
     return new Promise(() => {});
   }

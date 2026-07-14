@@ -60,7 +60,14 @@ Deno.serve(async (req: Request) => {
       // Trust boundary: only a LINE-signed id_token proves this request came
       // from the LINE user it claims to be. Never trust a raw userId posted
       // by the client, or one customer could view/spoof another's card.
-      const verified = await verifyLiffIdToken(id_token, shop.liff_id ?? "");
+      //
+      // LINE's /oauth2/v2.1/verify wants the LINE Login *Channel ID* as
+      // client_id (it must match the id_token's `aud`), which is the numeric
+      // prefix of the LIFF ID — e.g. LIFF ID "2010706123-N4ACFeDJ" belongs to
+      // channel "2010706123". `shop.liff_id` stores the full LIFF ID (the
+      // frontend needs it for liff.init), so strip the suffix here.
+      const liffChannelId = (shop.liff_id ?? "").split("-")[0];
+      const verified = await verifyLiffIdToken(id_token, liffChannelId);
       lineUserId = verified.sub;
       displayName = verified.name ?? null;
       pictureUrl = verified.picture ?? null;
