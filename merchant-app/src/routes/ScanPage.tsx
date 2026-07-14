@@ -3,12 +3,14 @@ import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 import { toast } from "sonner";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
+import { useI18n } from "@/i18n/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ScanPage() {
+  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
   const [qrToken, setQrToken] = useState("");
@@ -39,7 +41,7 @@ export default function ScanPage() {
       controlsRef.current = controls;
     } catch (error) {
       setScanning(false);
-      toast.error(error instanceof Error ? error.message : "Could not access camera");
+      toast.error(error instanceof Error ? error.message : t("scan.cameraError"));
     }
   }
 
@@ -52,11 +54,11 @@ export default function ScanPage() {
     event.preventDefault();
     const parsedDelta = Number(delta);
     if (!qrToken.trim()) {
-      toast.error("Scan or paste a card QR token first");
+      toast.error(t("scan.scanFirst"));
       return;
     }
     if (!Number.isInteger(parsedDelta) || parsedDelta === 0) {
-      toast.error("Enter a non-zero whole number of points");
+      toast.error(t("scan.enterNonZero"));
       return;
     }
     setSubmitting(true);
@@ -70,32 +72,32 @@ export default function ScanPage() {
       return;
     }
     setLastResult(data ?? null);
-    toast.success(`New balance: ${data?.balance} points`);
+    toast.success(t("scan.newBalance", { points: data?.balance ?? 0 }));
     setQrToken("");
   }
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Scan customer card</h1>
-        <p className="text-muted-foreground">Scan a loyalty QR code to add or deduct points.</p>
+        <h1 className="text-2xl font-semibold text-foreground">{t("scan.title")}</h1>
+        <p className="text-muted-foreground">{t("scan.subtitle")}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Camera</CardTitle>
-          <CardDescription>Point the camera at the customer's loyalty QR code.</CardDescription>
+          <CardTitle>{t("scan.camera")}</CardTitle>
+          <CardDescription>{t("scan.cameraHint")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <video ref={videoRef} className="w-full max-w-sm rounded-md bg-muted" muted />
           <div className="flex gap-2">
             {!scanning ? (
               <Button type="button" onClick={startScanning}>
-                Start camera
+                {t("scan.startCamera")}
               </Button>
             ) : (
               <Button type="button" variant="outline" onClick={stopScanning}>
-                Stop camera
+                {t("scan.stopCamera")}
               </Button>
             )}
           </div>
@@ -104,22 +106,22 @@ export default function ScanPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Apply points</CardTitle>
+          <CardTitle>{t("scan.applyPoints")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="qr-token">Card token</Label>
+              <Label htmlFor="qr-token">{t("scan.cardToken")}</Label>
               <Input
                 id="qr-token"
-                placeholder="Scanned automatically, or paste for testing"
+                placeholder={t("scan.cardTokenPlaceholder")}
                 value={qrToken}
                 onChange={(e) => setQrToken(e.target.value)}
               />
             </div>
             <div className="flex flex-wrap gap-3">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="delta">Points (negative to deduct)</Label>
+                <Label htmlFor="delta">{t("scan.pointsLabel")}</Label>
                 <Input
                   id="delta"
                   type="number"
@@ -129,15 +131,15 @@ export default function ScanPage() {
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="reason">Reason</Label>
+                <Label htmlFor="reason">{t("common.reason")}</Label>
                 <Input id="reason" className="w-56" value={reason} onChange={(e) => setReason(e.target.value)} />
               </div>
             </div>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Applying..." : "Apply"}
+              {submitting ? t("common.applying") : t("common.apply")}
             </Button>
             {lastResult && (
-              <p className="text-sm text-muted-foreground">New balance: {lastResult.balance} points</p>
+              <p className="text-sm text-muted-foreground">{t("scan.newBalance", { points: lastResult.balance })}</p>
             )}
           </form>
         </CardContent>

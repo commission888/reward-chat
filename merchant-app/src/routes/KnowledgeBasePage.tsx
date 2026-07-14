@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { extractText } from "@/lib/extractText";
 import { useAuth } from "@/auth/AuthProvider";
+import { useI18n } from "@/i18n/LanguageProvider";
 import { KNOWLEDGE_FILES_BUCKET, getFunctionErrorMessage } from "@rewardchat/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive"> = 
 
 export default function KnowledgeBasePage() {
   const { profile } = useAuth();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -38,7 +40,7 @@ export default function KnowledgeBasePage() {
 
   const uploadFile = useMutation({
     mutationFn: async (file: File) => {
-      if (!profile?.shop_id) throw new Error("No shop context");
+      if (!profile?.shop_id) throw new Error(t("kb.noShopContext"));
       const text = await extractText(file);
       const fileId = crypto.randomUUID();
       const storagePath = `${profile.shop_id}/${fileId}/${file.name}`;
@@ -63,7 +65,7 @@ export default function KnowledgeBasePage() {
       if (ingestError) throw ingestError;
     },
     onSuccess: () => {
-      toast.success("File uploaded, processing started");
+      toast.success(t("kb.uploadedToast"));
       queryClient.invalidateQueries({ queryKey: ["files"] });
     },
     onError: (error) => {
@@ -84,10 +86,8 @@ export default function KnowledgeBasePage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Knowledge base</h1>
-          <p className="text-muted-foreground">
-            Upload .docx or .xlsx files. Your AI chatbot answers customer questions using this content first.
-          </p>
+          <h1 className="text-2xl font-semibold text-foreground">{t("kb.title")}</h1>
+          <p className="text-muted-foreground">{t("kb.subtitle")}</p>
         </div>
         <input
           ref={fileInputRef}
@@ -97,28 +97,28 @@ export default function KnowledgeBasePage() {
           onChange={handleFileChange}
         />
         <Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-          {uploading ? "Uploading..." : "Upload file"}
+          {uploading ? t("kb.uploading") : t("kb.upload")}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Files</CardTitle>
-          <CardDescription>Processing usually finishes within a few seconds.</CardDescription>
+          <CardTitle>{t("kb.files")}</CardTitle>
+          <CardDescription>{t("kb.processingHint")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Uploaded</TableHead>
+                <TableHead>{t("common.name")}</TableHead>
+                <TableHead>{t("common.status")}</TableHead>
+                <TableHead>{t("kb.uploaded")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={3}>Loading...</TableCell>
+                  <TableCell colSpan={3}>{t("common.loading")}</TableCell>
                 </TableRow>
               )}
               {files?.map((file) => (

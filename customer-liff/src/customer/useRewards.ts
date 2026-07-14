@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
+import { useI18n } from "@/i18n/LanguageProvider";
 
 export type Reward = {
   id: string;
@@ -23,6 +24,7 @@ export type Redemption = {
 // token proves identity). `redeem` creates a pending redemption that staff
 // later approve in the merchant app.
 export function useRewards(qrToken: string | null) {
+  const { t } = useI18n();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [redemptions, setRedemptions] = useState<Redemption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,11 +43,11 @@ export function useRewards(qrToken: string | null) {
       setRewards(data?.rewards ?? []);
       setRedemptions(data?.redemptions ?? []);
     } catch (err) {
-      setError(await getFunctionErrorMessage(err, "Could not load rewards"));
+      setError(await getFunctionErrorMessage(err, t("card.loadFailed")));
     } finally {
       setLoading(false);
     }
-  }, [qrToken]);
+  }, [qrToken, t]);
 
   useEffect(() => {
     reload();
@@ -57,10 +59,10 @@ export function useRewards(qrToken: string | null) {
       const { error: fnError } = await supabase.functions.invoke("create-redemption", {
         body: { qr_token: qrToken, reward_id: rewardId },
       });
-      if (fnError) throw new Error(await getFunctionErrorMessage(fnError, "Could not redeem"));
+      if (fnError) throw new Error(await getFunctionErrorMessage(fnError, t("card.redeemFailed")));
       await reload();
     },
-    [qrToken, reload]
+    [qrToken, reload, t]
   );
 
   return { rewards, redemptions, loading, error, reload, redeem };

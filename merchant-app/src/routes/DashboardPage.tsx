@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
+import { useI18n } from "@/i18n/LanguageProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function DashboardPage() {
   const { profile } = useAuth();
+  const { t } = useI18n();
 
   const { data: customerCount } = useQuery({
     queryKey: ["dashboard", "customer-count", profile?.shop_id],
@@ -34,20 +36,20 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Overview of your shop's loyalty program.</p>
+        <h1 className="text-2xl font-semibold text-foreground">{t("dashboard.title")}</h1>
+        <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardDescription>Total customers</CardDescription>
+            <CardDescription>{t("dashboard.totalCustomers")}</CardDescription>
             <CardTitle className="text-3xl">{customerCount ?? "—"}</CardTitle>
           </CardHeader>
           <CardContent />
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>Points issued (all time)</CardDescription>
+            <CardDescription>{t("dashboard.pointsIssued")}</CardDescription>
             <CardTitle className="text-3xl">{pointsIssued ?? "—"}</CardTitle>
           </CardHeader>
           <CardContent />

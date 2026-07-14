@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { MoreHorizontal } from "lucide-react";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
+import { useI18n } from "@/i18n/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,7 @@ function slugify(name: string) {
 }
 
 export default function ShopsPage() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const invalidateShops = () => queryClient.invalidateQueries({ queryKey: ["shops"] });
 
@@ -57,7 +59,7 @@ export default function ShopsPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Shop created");
+      toast.success(t("shops.created"));
       setName("");
       setCreateOpen(false);
       invalidateShops();
@@ -76,7 +78,7 @@ export default function ShopsPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Shop renamed");
+      toast.success(t("shops.renamed"));
       setRenameShop(null);
       invalidateShops();
     },
@@ -92,7 +94,7 @@ export default function ShopsPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Shop deleted");
+      toast.success(t("shops.deleted"));
       setDeleteShop(null);
       invalidateShops();
     },
@@ -117,24 +119,24 @@ export default function ShopsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Shops</h1>
-          <p className="text-muted-foreground">Manage every tenant on the platform.</p>
+          <h1 className="text-2xl font-semibold text-foreground">{t("shops.title")}</h1>
+          <p className="text-muted-foreground">{t("shops.subtitle")}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button>New shop</Button>
+            <Button>{t("shops.newShop")}</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create shop</DialogTitle>
+              <DialogTitle>{t("shops.createTitle")}</DialogTitle>
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleCreate}>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="shop-name">Shop name</Label>
+                <Label htmlFor="shop-name">{t("shops.shopName")}</Label>
                 <Input id="shop-name" value={name} onChange={(e) => setName(e.target.value)} required />
               </div>
               <Button type="submit" disabled={createShop.isPending}>
-                {createShop.isPending ? "Creating..." : "Create shop"}
+                {createShop.isPending ? t("common.creating") : t("shops.createShop")}
               </Button>
             </form>
           </DialogContent>
@@ -142,21 +144,21 @@ export default function ShopsPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>All shops</CardTitle>
+          <CardTitle>{t("shops.all")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead className="w-12 text-right">Actions</TableHead>
+                <TableHead>{t("common.name")}</TableHead>
+                <TableHead>{t("shops.slug")}</TableHead>
+                <TableHead className="w-12 text-right">{t("common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={3}>Loading...</TableCell>
+                  <TableCell colSpan={3}>{t("common.loading")}</TableCell>
                 </TableRow>
               )}
               {shops?.map((shop) => (
@@ -166,25 +168,25 @@ export default function ShopsPage() {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label={`Actions for ${shop.name}`}>
+                        <Button variant="ghost" size="icon" aria-label={t("shops.actionsFor", { name: shop.name })}>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => setManageShop(shop)}>Manage admins</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setManageShop(shop)}>{t("shops.manageAdmins")}</DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => {
                             setRenameName(shop.name);
                             setRenameShop(shop);
                           }}
                         >
-                          Rename
+                          {t("shops.rename")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onSelect={() => setDeleteShop(shop)}
                         >
-                          Delete
+                          {t("shops.delete")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -203,15 +205,15 @@ export default function ShopsPage() {
       <Dialog open={renameShop !== null} onOpenChange={(open) => !open && setRenameShop(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename shop</DialogTitle>
+            <DialogTitle>{t("shops.renameTitle")}</DialogTitle>
           </DialogHeader>
           <form className="flex flex-col gap-4" onSubmit={handleRename}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="rename-name">Shop name</Label>
+              <Label htmlFor="rename-name">{t("shops.shopName")}</Label>
               <Input id="rename-name" value={renameName} onChange={(e) => setRenameName(e.target.value)} required />
             </div>
             <Button type="submit" disabled={renameShopMutation.isPending}>
-              {renameShopMutation.isPending ? "Saving..." : "Save"}
+              {renameShopMutation.isPending ? t("common.saving") : t("common.save")}
             </Button>
           </form>
         </DialogContent>
@@ -221,22 +223,21 @@ export default function ShopsPage() {
       <Dialog open={deleteShop !== null} onOpenChange={(open) => !open && setDeleteShop(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete {deleteShop?.name}?</DialogTitle>
+            <DialogTitle>{t("shops.deleteTitle", { name: deleteShop?.name ?? "" })}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This permanently deletes the shop and everything under it — its admin/staff accounts, customers, points
-            history, loyalty cards, and knowledge base. This cannot be undone.
+            {t("shops.deleteWarning")}
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setDeleteShop(null)} disabled={deleteShopMutation.isPending}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="destructive"
               onClick={() => deleteShopMutation.mutate()}
               disabled={deleteShopMutation.isPending}
             >
-              {deleteShopMutation.isPending ? "Deleting..." : "Delete shop"}
+              {deleteShopMutation.isPending ? t("shops.deleting") : t("shops.deleteShop")}
             </Button>
           </div>
         </DialogContent>

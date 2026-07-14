@@ -1,37 +1,40 @@
 import { useState } from "react";
 import { NavLink, Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthProvider";
+import { useI18n } from "@/i18n/LanguageProvider";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type NavItem = { to: string; label: string };
+type NavItem = { to: string; labelKey: string };
 
 const NAV_BY_ROLE: Record<string, NavItem[]> = {
-  super_admin: [{ to: "/admin/shops", label: "Shops" }],
+  super_admin: [{ to: "/admin/shops", labelKey: "nav.shops" }],
   admin: [
-    { to: "/dashboard", label: "Dashboard" },
-    { to: "/staff", label: "Staff" },
-    { to: "/customers", label: "Customers" },
-    { to: "/rewards", label: "Rewards" },
-    { to: "/redemptions", label: "Redemptions" },
-    { to: "/knowledge-base", label: "Knowledge Base" },
-    { to: "/settings/line", label: "LINE Settings" },
-    { to: "/settings/payments", label: "Payment Settings" },
+    { to: "/dashboard", labelKey: "nav.dashboard" },
+    { to: "/staff", labelKey: "nav.staff" },
+    { to: "/customers", labelKey: "nav.customers" },
+    { to: "/rewards", labelKey: "nav.rewards" },
+    { to: "/redemptions", labelKey: "nav.redemptions" },
+    { to: "/knowledge-base", labelKey: "nav.knowledgeBase" },
+    { to: "/settings/line", labelKey: "nav.lineSettings" },
+    { to: "/settings/payments", labelKey: "nav.paymentSettings" },
   ],
   staff: [
-    { to: "/dashboard", label: "Dashboard" },
-    { to: "/scan", label: "Scan" },
-    { to: "/customers", label: "Customers" },
-    { to: "/redemptions", label: "Redemptions" },
+    { to: "/dashboard", labelKey: "nav.dashboard" },
+    { to: "/scan", labelKey: "nav.scan" },
+    { to: "/customers", labelKey: "nav.customers" },
+    { to: "/redemptions", labelKey: "nav.redemptions" },
   ],
 };
 
 export default function AppShell() {
   const { session, profile, loading, signOut } = useAuth();
+  const { t } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center text-base text-muted-foreground">Loading...</div>;
+    return <div className="flex min-h-screen items-center justify-center text-base text-muted-foreground">{t("common.loading")}</div>;
   }
 
   if (!session || !profile) {
@@ -61,13 +64,16 @@ export default function AppShell() {
               )
             }
           >
-            {item.label}
+            {t(item.labelKey)}
           </NavLink>
         ))}
       </nav>
-      <Button variant="outline" onClick={() => signOut()}>
-        Sign out
-      </Button>
+      <div className="flex flex-col gap-3">
+        <LanguageToggle className="w-full justify-center" />
+        <Button variant="outline" onClick={() => signOut()}>
+          {t("common.signOut")}
+        </Button>
+      </div>
     </>
   );
 
@@ -93,7 +99,7 @@ export default function AppShell() {
         <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-3 lg:hidden">
           <button
             type="button"
-            aria-label="Open menu"
+            aria-label={t("app.openMenu")}
             onClick={() => setMobileOpen(true)}
             className="inline-flex size-10 items-center justify-center rounded-lg text-foreground hover:bg-accent"
           >
@@ -104,6 +110,7 @@ export default function AppShell() {
             </svg>
           </button>
           <p className="text-lg font-semibold text-foreground">RewardChat</p>
+          <LanguageToggle className="ml-auto" />
         </header>
 
         <main className="flex-1 overflow-y-auto p-5 sm:p-8">

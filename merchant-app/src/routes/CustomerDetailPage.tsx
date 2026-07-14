@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
+import { useI18n } from "@/i18n/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ export default function CustomerDetailPage() {
   const { customerId: customerIdParam } = useParams<{ customerId: string }>();
   const customerId = customerIdParam ?? "";
   const queryClient = useQueryClient();
+  const { t } = useI18n();
   const [delta, setDelta] = useState("");
   const [reason, setReason] = useState("manual_adjustment");
 
@@ -47,7 +49,7 @@ export default function CustomerDetailPage() {
   const adjustPoints = useMutation({
     mutationFn: async () => {
       const parsed = Number(delta);
-      if (!Number.isInteger(parsed) || parsed === 0) throw new Error("Enter a non-zero whole number");
+      if (!Number.isInteger(parsed) || parsed === 0) throw new Error(t("customerDetail.enterNonZero"));
       const { error } = await supabase.rpc("apply_points", {
         p_customer_id: customerId,
         p_delta: parsed,
@@ -56,7 +58,7 @@ export default function CustomerDetailPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Balance updated");
+      toast.success(t("customerDetail.balanceUpdated"));
       setDelta("");
       queryClient.invalidateQueries({ queryKey: ["customer", customerId] });
       queryClient.invalidateQueries({ queryKey: ["customer", customerId, "history"] });
@@ -74,18 +76,18 @@ export default function CustomerDetailPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">{customer.display_name ?? "Unnamed customer"}</h1>
-        <p className="text-muted-foreground">{customer.phone ?? "No phone on file"}</p>
+        <h1 className="text-2xl font-semibold text-foreground">{customer.display_name ?? t("customerDetail.unnamed")}</h1>
+        <p className="text-muted-foreground">{customer.phone ?? t("customerDetail.noPhone")}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Balance: {customer.points_balance} points</CardTitle>
+          <CardTitle>{t("customerDetail.balance", { points: customer.points_balance })}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="flex flex-wrap items-end gap-3" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="delta">Adjustment (use a negative number to deduct)</Label>
+              <Label htmlFor="delta">{t("customerDetail.adjustment")}</Label>
               <Input
                 id="delta"
                 type="number"
@@ -96,11 +98,11 @@ export default function CustomerDetailPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="reason">Reason</Label>
+              <Label htmlFor="reason">{t("common.reason")}</Label>
               <Input id="reason" value={reason} onChange={(e) => setReason(e.target.value)} className="w-56" />
             </div>
             <Button type="submit" disabled={adjustPoints.isPending}>
-              {adjustPoints.isPending ? "Applying..." : "Apply"}
+              {adjustPoints.isPending ? t("common.applying") : t("common.apply")}
             </Button>
           </form>
         </CardContent>
@@ -108,16 +110,16 @@ export default function CustomerDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>History</CardTitle>
+          <CardTitle>{t("customerDetail.history")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Change</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead className="text-right">Balance after</TableHead>
+                <TableHead>{t("common.date")}</TableHead>
+                <TableHead>{t("customerDetail.change")}</TableHead>
+                <TableHead>{t("common.reason")}</TableHead>
+                <TableHead className="text-right">{t("customerDetail.balanceAfter")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

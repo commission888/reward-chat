@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
+import { useI18n } from "@/i18n/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +21,7 @@ import {
 
 export default function StaffPage() {
   const queryClient = useQueryClient();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -46,7 +48,7 @@ export default function StaffPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Staff account created");
+      toast.success(t("staff.created"));
       setFullName("");
       setEmail("");
       setPassword("");
@@ -68,28 +70,28 @@ export default function StaffPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Staff</h1>
-          <p className="text-muted-foreground">People who can manage your shop or scan points.</p>
+          <h1 className="text-2xl font-semibold text-foreground">{t("staff.title")}</h1>
+          <p className="text-muted-foreground">{t("staff.subtitle")}</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>New staff account</Button>
+            <Button>{t("staff.newAccount")}</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create staff account</DialogTitle>
+              <DialogTitle>{t("staff.createTitle")}</DialogTitle>
             </DialogHeader>
             <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="full-name">Full name</Label>
+                <Label htmlFor="full-name">{t("common.fullName")}</Label>
                 <Input id="full-name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("common.email")}</Label>
                 <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="password">Temporary password</Label>
+                <Label htmlFor="password">{t("staff.tempPassword")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -100,19 +102,19 @@ export default function StaffPage() {
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label>Role</Label>
+                <Label>{t("common.role")}</Label>
                 <Select value={role} onValueChange={(value) => setRole(value as "admin" | "staff")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="staff">Staff (points scanner)</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="staff">{t("staff.roleStaff")}</SelectItem>
+                    <SelectItem value="admin">{t("staff.roleAdmin")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <Button type="submit" disabled={createStaff.isPending}>
-                {createStaff.isPending ? "Creating..." : "Create account"}
+                {createStaff.isPending ? t("common.creating") : t("staff.createAccount")}
               </Button>
             </form>
           </DialogContent>
@@ -120,21 +122,21 @@ export default function StaffPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Team</CardTitle>
+          <CardTitle>{t("staff.team")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead>{t("common.name")}</TableHead>
+                <TableHead>{t("common.email")}</TableHead>
+                <TableHead>{t("common.role")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={3}>Loading...</TableCell>
+                  <TableCell colSpan={3}>{t("common.loading")}</TableCell>
                 </TableRow>
               )}
               {staff?.map((member) => (

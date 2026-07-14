@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
+import { useI18n } from "@/i18n/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary"> = {
 
 export default function RedemptionsPage() {
   const { profile } = useAuth();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const shopId = profile?.shop_id ?? null;
 
@@ -68,10 +70,10 @@ export default function RedemptionsPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Redemption approved — points deducted");
+      toast.success(t("redemptions.approved"));
       invalidate();
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to approve"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : t("redemptions.errApprove")),
   });
 
   const reject = useMutation({
@@ -80,10 +82,10 @@ export default function RedemptionsPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Redemption rejected");
+      toast.success(t("redemptions.rejected"));
       invalidate();
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to reject"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : t("redemptions.errReject")),
   });
 
   const busy = approve.isPending || reject.isPending;
@@ -91,38 +93,36 @@ export default function RedemptionsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Redemptions</h1>
-        <p className="text-muted-foreground">
-          Approve a customer's reward redemption to deduct their points, or reject it.
-        </p>
+        <h1 className="text-2xl font-semibold text-foreground">{t("redemptions.title")}</h1>
+        <p className="text-muted-foreground">{t("redemptions.subtitle")}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Pending approval</CardTitle>
-          <CardDescription>Match the code the customer shows on their coupon.</CardDescription>
+          <CardTitle>{t("redemptions.pending")}</CardTitle>
+          <CardDescription>{t("redemptions.pendingHint")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Reward</TableHead>
-                <TableHead>Points</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("redemptions.code")}</TableHead>
+                <TableHead>{t("redemptions.customer")}</TableHead>
+                <TableHead>{t("redemptions.reward")}</TableHead>
+                <TableHead>{t("redemptions.pointsCol")}</TableHead>
+                <TableHead className="text-right">{t("common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pending.isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5}>Loading...</TableCell>
+                  <TableCell colSpan={5}>{t("common.loading")}</TableCell>
                 </TableRow>
               )}
               {!pending.isLoading && (pending.data?.length ?? 0) === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-muted-foreground">
-                    No pending redemptions.
+                    {t("redemptions.noPending")}
                   </TableCell>
                 </TableRow>
               )}
@@ -135,10 +135,10 @@ export default function RedemptionsPage() {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button size="sm" onClick={() => approve.mutate(r.id)} disabled={busy}>
-                        Approve
+                        {t("redemptions.approve")}
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => reject.mutate(r.id)} disabled={busy}>
-                        Reject
+                        {t("redemptions.reject")}
                       </Button>
                     </div>
                   </TableCell>
@@ -151,24 +151,24 @@ export default function RedemptionsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent</CardTitle>
+          <CardTitle>{t("redemptions.recent")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Reward</TableHead>
-                <TableHead>Points</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{t("redemptions.code")}</TableHead>
+                <TableHead>{t("redemptions.customer")}</TableHead>
+                <TableHead>{t("redemptions.reward")}</TableHead>
+                <TableHead>{t("redemptions.pointsCol")}</TableHead>
+                <TableHead>{t("common.status")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {!recent.isLoading && (recent.data?.length ?? 0) === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-muted-foreground">
-                    Nothing yet.
+                    {t("redemptions.nothingYet")}
                   </TableCell>
                 </TableRow>
               )}
@@ -179,7 +179,7 @@ export default function RedemptionsPage() {
                   <TableCell>{r.reward_name}</TableCell>
                   <TableCell>{r.points_cost}</TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANT[r.status] ?? "secondary"}>{r.status}</Badge>
+                    <Badge variant={STATUS_VARIANT[r.status] ?? "secondary"}>{t(`status.${r.status}`)}</Badge>
                   </TableCell>
                 </TableRow>
               ))}

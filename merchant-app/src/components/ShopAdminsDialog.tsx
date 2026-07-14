@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Pencil, Trash2 } from "lucide-react";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
+import { useI18n } from "@/i18n/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ export default function ShopAdminsDialog({
   shop: Shop | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const shopId = shop?.id ?? null;
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["shop-admins", shopId] });
@@ -58,7 +60,7 @@ export default function ShopAdminsDialog({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Admin added");
+      toast.success(t("admins.added"));
       setAddName("");
       setAddEmail("");
       setAddPassword("");
@@ -81,7 +83,7 @@ export default function ShopAdminsDialog({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Admin updated");
+      toast.success(t("admins.updated"));
       setEditingId(null);
       setEditPassword("");
       invalidate();
@@ -97,7 +99,7 @@ export default function ShopAdminsDialog({
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Admin removed");
+      toast.success(t("admins.removed"));
       setConfirmDeleteId(null);
       invalidate();
     },
@@ -130,26 +132,26 @@ export default function ShopAdminsDialog({
     <Dialog open={shop !== null} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Admins — {shop?.name}</DialogTitle>
+          <DialogTitle>{t("admins.title", { name: shop?.name ?? "" })}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
-          {isLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
+          {isLoading && <p className="text-sm text-muted-foreground">{t("common.loading")}</p>}
           {!isLoading && admins?.length === 0 && (
-            <p className="text-sm text-muted-foreground">No admins yet. Add one below.</p>
+            <p className="text-sm text-muted-foreground">{t("admins.noAdmins")}</p>
           )}
 
           {admins?.map((admin) => (
             <div key={admin.id} className="rounded-md border p-3">
               {editingId === admin.id ? (
                 <form className="flex flex-col gap-2" onSubmit={handleEditSave}>
-                  <Label htmlFor={`name-${admin.id}`}>Full name</Label>
+                  <Label htmlFor={`name-${admin.id}`}>{t("common.fullName")}</Label>
                   <Input
                     id={`name-${admin.id}`}
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     required
                   />
-                  <Label htmlFor={`email-${admin.id}`}>Email</Label>
+                  <Label htmlFor={`email-${admin.id}`}>{t("common.email")}</Label>
                   <Input
                     id={`email-${admin.id}`}
                     type="email"
@@ -158,7 +160,7 @@ export default function ShopAdminsDialog({
                     required
                   />
                   <Label htmlFor={`pass-${admin.id}`}>
-                    New password <span className="text-muted-foreground">(leave blank to keep)</span>
+                    {t("admins.newPassword")} <span className="text-muted-foreground">{t("admins.leaveBlank")}</span>
                   </Label>
                   <Input
                     id={`pass-${admin.id}`}
@@ -175,29 +177,30 @@ export default function ShopAdminsDialog({
                       onClick={() => setEditingId(null)}
                       disabled={updateAdmin.isPending}
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </Button>
                     <Button type="submit" disabled={updateAdmin.isPending}>
-                      {updateAdmin.isPending ? "Saving..." : "Save"}
+                      {updateAdmin.isPending ? t("common.saving") : t("common.save")}
                     </Button>
                   </div>
                 </form>
               ) : confirmDeleteId === admin.id ? (
                 <div className="flex flex-col gap-2">
                   <p className="text-sm">
-                    Remove <span className="font-medium">{admin.full_name || admin.email}</span>? This permanently
-                    deletes their login.
+                    {t("admins.removePrefix")}
+                    <span className="font-medium">{admin.full_name || admin.email}</span>
+                    {t("admins.removeSuffix")}
                   </p>
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" onClick={() => setConfirmDeleteId(null)} disabled={deleteAdmin.isPending}>
-                      Cancel
+                      {t("common.cancel")}
                     </Button>
                     <Button
                       variant="destructive"
                       onClick={() => deleteAdmin.mutate(admin.id)}
                       disabled={deleteAdmin.isPending}
                     >
-                      {deleteAdmin.isPending ? "Removing..." : "Remove"}
+                      {deleteAdmin.isPending ? t("admins.removing") : t("admins.remove")}
                     </Button>
                   </div>
                 </div>
@@ -208,13 +211,13 @@ export default function ShopAdminsDialog({
                     <p className="truncate text-sm text-muted-foreground">{admin.email}</p>
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <Button variant="ghost" size="icon" aria-label="Edit admin" onClick={() => startEdit(admin)}>
+                    <Button variant="ghost" size="icon" aria-label={t("admins.editAria")} onClick={() => startEdit(admin)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label="Delete admin"
+                      aria-label={t("admins.deleteAria")}
                       onClick={() => {
                         setConfirmDeleteId(admin.id);
                         setEditingId(null);
@@ -230,9 +233,9 @@ export default function ShopAdminsDialog({
 
           {addOpen ? (
             <form className="flex flex-col gap-2 rounded-md border border-dashed p-3" onSubmit={handleAdd}>
-              <Label htmlFor="add-name">Full name</Label>
+              <Label htmlFor="add-name">{t("common.fullName")}</Label>
               <Input id="add-name" value={addName} onChange={(e) => setAddName(e.target.value)} required />
-              <Label htmlFor="add-email">Email</Label>
+              <Label htmlFor="add-email">{t("common.email")}</Label>
               <Input
                 id="add-email"
                 type="email"
@@ -240,7 +243,7 @@ export default function ShopAdminsDialog({
                 onChange={(e) => setAddEmail(e.target.value)}
                 required
               />
-              <Label htmlFor="add-pass">Temporary password</Label>
+              <Label htmlFor="add-pass">{t("admins.tempPassword")}</Label>
               <Input
                 id="add-pass"
                 type="password"
@@ -251,16 +254,16 @@ export default function ShopAdminsDialog({
               />
               <div className="flex justify-end gap-2 pt-1">
                 <Button type="button" variant="outline" onClick={() => setAddOpen(false)} disabled={addAdmin.isPending}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={addAdmin.isPending}>
-                  {addAdmin.isPending ? "Adding..." : "Add admin"}
+                  {addAdmin.isPending ? t("admins.adding") : t("admins.addAdmin")}
                 </Button>
               </div>
             </form>
           ) : (
             <Button variant="outline" onClick={() => setAddOpen(true)}>
-              + Add admin
+              {t("admins.addAdminPlus")}
             </Button>
           )}
         </div>

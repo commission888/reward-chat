@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
+import { useI18n } from "@/i18n/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive"> = 
 
 export default function PaymentSettingsPage() {
   const { profile } = useAuth();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     slip2go_api_secret: "",
@@ -76,7 +78,7 @@ export default function PaymentSettingsPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Payment settings saved");
+      toast.success(t("pay.saved"));
       queryClient.invalidateQueries({ queryKey: ["shop-payment-settings", profile?.shop_id] });
     },
     onError: (error) => {
@@ -105,18 +107,15 @@ export default function PaymentSettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Payment settings</h1>
-        <p className="text-muted-foreground">
-          When configured, customers who send a payment slip photo directly in your LINE chat get it verified and
-          points credited automatically.
-        </p>
+        <h1 className="text-2xl font-semibold text-foreground">{t("pay.title")}</h1>
+        <p className="text-muted-foreground">{t("pay.subtitle")}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Slip2Go</CardTitle>
+          <CardTitle>{t("pay.slip2go")}</CardTitle>
           <CardDescription>
-            Get your API secret from your{" "}
+            {t("pay.apiSecretHintPrefix")}
             <a
               href="https://slip2go.com"
               target="_blank"
@@ -124,14 +123,14 @@ export default function PaymentSettingsPage() {
               className="text-primary underline"
             >
               Slip2Go
-            </a>{" "}
-            account.
+            </a>
+            {t("pay.apiSecretHintSuffix")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="slip2go_api_secret">Slip2Go API secret</Label>
+              <Label htmlFor="slip2go_api_secret">{t("pay.apiSecret")}</Label>
               <Input
                 id="slip2go_api_secret"
                 type="password"
@@ -141,13 +140,12 @@ export default function PaymentSettingsPage() {
             </div>
 
             <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-              Fill in your receiving bank account below. If left blank, <strong>any</strong> genuine bank slip —
-              even one paid to someone else entirely — will be accepted and credited with points.
+              {t("pay.warning")}
             </div>
 
             <div className="flex flex-wrap gap-3">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="slip_receiver_account_type">Bank</Label>
+                <Label htmlFor="slip_receiver_account_type">{t("pay.bank")}</Label>
                 <Select
                   value={form.slip_receiver_account_type}
                   onValueChange={(value) =>
@@ -155,7 +153,7 @@ export default function PaymentSettingsPage() {
                   }
                 >
                   <SelectTrigger id="slip_receiver_account_type" className="w-72">
-                    <SelectValue placeholder="Select bank" />
+                    <SelectValue placeholder={t("pay.selectBank")} />
                   </SelectTrigger>
                   <SelectContent>
                     {THAI_BANKS.map((bank) => (
@@ -167,7 +165,7 @@ export default function PaymentSettingsPage() {
                 </Select>
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="slip_receiver_account_number">Account number</Label>
+                <Label htmlFor="slip_receiver_account_number">{t("pay.accountNumber")}</Label>
                 <Input
                   id="slip_receiver_account_number"
                   className="w-56"
@@ -178,7 +176,7 @@ export default function PaymentSettingsPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="slip_receiver_account_name_th">Account name (Thai)</Label>
+                <Label htmlFor="slip_receiver_account_name_th">{t("pay.accountNameTh")}</Label>
                 <Input
                   id="slip_receiver_account_name_th"
                   className="w-64"
@@ -187,7 +185,7 @@ export default function PaymentSettingsPage() {
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="slip_receiver_account_name_en">Account name (English)</Label>
+                <Label htmlFor="slip_receiver_account_name_en">{t("pay.accountNameEn")}</Label>
                 <Input
                   id="slip_receiver_account_name_en"
                   className="w-64"
@@ -198,7 +196,7 @@ export default function PaymentSettingsPage() {
             </div>
 
             <Button type="submit" disabled={save.isPending} className="self-start">
-              {save.isPending ? "Saving..." : "Save"}
+              {save.isPending ? t("common.saving") : t("common.save")}
             </Button>
           </form>
         </CardContent>
@@ -206,30 +204,30 @@ export default function PaymentSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent slip verifications</CardTitle>
+          <CardTitle>{t("pay.recentVerifications")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Sender</TableHead>
-                <TableHead>Bank</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Points</TableHead>
+                <TableHead>{t("common.date")}</TableHead>
+                <TableHead>{t("pay.sender")}</TableHead>
+                <TableHead>{t("pay.bank")}</TableHead>
+                <TableHead>{t("pay.amount")}</TableHead>
+                <TableHead>{t("common.status")}</TableHead>
+                <TableHead className="text-right">{t("common.points")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {verificationsLoading && (
                 <TableRow>
-                  <TableCell colSpan={6}>Loading...</TableCell>
+                  <TableCell colSpan={6}>{t("common.loading")}</TableCell>
                 </TableRow>
               )}
               {verifications?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-muted-foreground">
-                    No slips verified yet.
+                    {t("pay.noSlips")}
                   </TableCell>
                 </TableRow>
               )}

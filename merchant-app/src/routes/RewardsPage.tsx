@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
+import { useI18n } from "@/i18n/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +21,7 @@ type Reward = {
 
 export default function RewardsPage() {
   const { profile } = useAuth();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const shopId = profile?.shop_id ?? null;
   const [form, setForm] = useState({ name: "", description: "", points_cost: "" });
@@ -52,11 +54,11 @@ export default function RewardsPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Reward added");
+      toast.success(t("rewards.added"));
       setForm({ name: "", description: "", points_cost: "" });
       invalidate();
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to add reward"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : t("rewards.errAdd")),
   });
 
   const toggleActive = useMutation({
@@ -65,7 +67,7 @@ export default function RewardsPage() {
       if (error) throw error;
     },
     onSuccess: invalidate,
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to update reward"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : t("rewards.errUpdate")),
   });
 
   const remove = useMutation({
@@ -74,21 +76,21 @@ export default function RewardsPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Reward deleted");
+      toast.success(t("rewards.deleted"));
       invalidate();
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to delete reward"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : t("rewards.errDelete")),
   });
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     const cost = Number(form.points_cost);
     if (!form.name.trim()) {
-      toast.error("Enter a reward name");
+      toast.error(t("rewards.errName"));
       return;
     }
     if (!Number.isInteger(cost) || cost <= 0) {
-      toast.error("Enter a whole number of points greater than 0");
+      toast.error(t("rewards.errPoints"));
       return;
     }
     create.mutate();
@@ -97,53 +99,51 @@ export default function RewardsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">Rewards</h1>
-        <p className="text-muted-foreground">
-          Rewards customers can redeem with their points. Redemptions are approved by staff.
-        </p>
+        <h1 className="text-2xl font-semibold text-foreground">{t("rewards.title")}</h1>
+        <p className="text-muted-foreground">{t("rewards.subtitle")}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Add a reward</CardTitle>
+          <CardTitle>{t("rewards.addTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-wrap gap-3">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">{t("common.name")}</Label>
                 <Input
                   id="name"
                   className="w-64"
-                  placeholder="e.g. Free coffee"
+                  placeholder={t("rewards.namePlaceholder")}
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="points_cost">Points cost</Label>
+                <Label htmlFor="points_cost">{t("rewards.pointsCost")}</Label>
                 <Input
                   id="points_cost"
                   type="number"
                   className="w-40"
-                  placeholder="e.g. 10"
+                  placeholder={t("rewards.pointsPlaceholder")}
                   value={form.points_cost}
                   onChange={(e) => setForm((f) => ({ ...f, points_cost: e.target.value }))}
                 />
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="description">Description (optional)</Label>
+              <Label htmlFor="description">{t("rewards.description")}</Label>
               <Input
                 id="description"
                 className="w-full max-w-xl"
-                placeholder="Short details shown to the customer"
+                placeholder={t("rewards.descriptionPlaceholder")}
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               />
             </div>
             <Button type="submit" disabled={create.isPending} className="self-start">
-              {create.isPending ? "Adding..." : "Add reward"}
+              {create.isPending ? t("rewards.adding") : t("rewards.addButton")}
             </Button>
           </form>
         </CardContent>
@@ -151,28 +151,28 @@ export default function RewardsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Your rewards</CardTitle>
+          <CardTitle>{t("rewards.yours")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Points</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("common.name")}</TableHead>
+                <TableHead>{t("rewards.pointsCol")}</TableHead>
+                <TableHead>{t("common.status")}</TableHead>
+                <TableHead className="text-right">{t("common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={4}>Loading...</TableCell>
+                  <TableCell colSpan={4}>{t("common.loading")}</TableCell>
                 </TableRow>
               )}
               {!isLoading && (rewards?.length ?? 0) === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="text-muted-foreground">
-                    No rewards yet. Add one above.
+                    {t("rewards.empty")}
                   </TableCell>
                 </TableRow>
               )}
@@ -187,7 +187,7 @@ export default function RewardsPage() {
                   <TableCell>{reward.points_cost}</TableCell>
                   <TableCell>
                     <Badge variant={reward.active ? "default" : "secondary"}>
-                      {reward.active ? "Active" : "Hidden"}
+                      {reward.active ? t("rewards.active") : t("rewards.hidden")}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -198,7 +198,7 @@ export default function RewardsPage() {
                         onClick={() => toggleActive.mutate(reward)}
                         disabled={toggleActive.isPending}
                       >
-                        {reward.active ? "Hide" : "Show"}
+                        {reward.active ? t("rewards.hide") : t("rewards.show")}
                       </Button>
                       <Button
                         variant="outline"
@@ -206,7 +206,7 @@ export default function RewardsPage() {
                         onClick={() => remove.mutate(reward.id)}
                         disabled={remove.isPending}
                       >
-                        Delete
+                        {t("rewards.deleteButton")}
                       </Button>
                     </div>
                   </TableCell>

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
+import { useI18n } from "@/i18n/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ import {
 
 export default function LineSettingsPage() {
   const { profile } = useAuth();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     line_channel_id: "",
@@ -67,7 +69,7 @@ export default function LineSettingsPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("LINE settings saved");
+      toast.success(t("line.saved"));
       queryClient.invalidateQueries({ queryKey: ["shop", profile?.shop_id] });
     },
     onError: (error) => {
@@ -87,14 +89,14 @@ export default function LineSettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">LINE settings</h1>
-        <p className="text-muted-foreground">Connect your shop's LINE Official Account and LIFF app.</p>
+        <h1 className="text-2xl font-semibold text-foreground">{t("line.title")}</h1>
+        <p className="text-muted-foreground">{t("line.subtitle")}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Webhook URL</CardTitle>
-          <CardDescription>Paste this into your LINE channel's Messaging API webhook settings.</CardDescription>
+          <CardTitle>{t("line.webhookUrl")}</CardTitle>
+          <CardDescription>{t("line.webhookHint")}</CardDescription>
         </CardHeader>
         <CardContent>
           <code className="block break-all rounded-md bg-muted p-3 text-sm">{webhookUrl}</code>
@@ -103,12 +105,12 @@ export default function LineSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Channel credentials</CardTitle>
+          <CardTitle>{t("line.channelCredentials")}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="line_channel_id">Channel ID</Label>
+              <Label htmlFor="line_channel_id">{t("line.channelId")}</Label>
               <Input
                 id="line_channel_id"
                 value={form.line_channel_id}
@@ -116,7 +118,7 @@ export default function LineSettingsPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="line_channel_secret">Channel secret</Label>
+              <Label htmlFor="line_channel_secret">{t("line.channelSecret")}</Label>
               <Input
                 id="line_channel_secret"
                 type="password"
@@ -125,7 +127,7 @@ export default function LineSettingsPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="line_channel_access_token">Channel access token</Label>
+              <Label htmlFor="line_channel_access_token">{t("line.channelAccessToken")}</Label>
               <Input
                 id="line_channel_access_token"
                 type="password"
@@ -134,7 +136,7 @@ export default function LineSettingsPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="liff_id">LIFF ID</Label>
+              <Label htmlFor="liff_id">{t("line.liffId")}</Label>
               <Input
                 id="liff_id"
                 value={form.liff_id}
@@ -142,7 +144,7 @@ export default function LineSettingsPage() {
               />
             </div>
             <Button type="submit" disabled={save.isPending} className="self-start">
-              {save.isPending ? "Saving..." : "Save"}
+              {save.isPending ? t("common.saving") : t("common.save")}
             </Button>
           </form>
         </CardContent>
