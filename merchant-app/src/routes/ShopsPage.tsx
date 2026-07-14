@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import ShopAdminsDialog from "@/components/ShopAdminsDialog";
 
 type Shop = { id: string; name: string; slug: string; created_at: string };
 
@@ -35,13 +36,10 @@ export default function ShopsPage() {
   const [name, setName] = useState("");
 
   // The shop each per-row dialog is acting on (null = closed).
-  const [adminShop, setAdminShop] = useState<Shop | null>(null);
+  const [manageShop, setManageShop] = useState<Shop | null>(null);
   const [renameShop, setRenameShop] = useState<Shop | null>(null);
   const [deleteShop, setDeleteShop] = useState<Shop | null>(null);
 
-  const [adminFullName, setAdminFullName] = useState("");
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
   const [renameName, setRenameName] = useState("");
 
   const { data: shops, isLoading } = useQuery({
@@ -65,31 +63,6 @@ export default function ShopsPage() {
       invalidateShops();
     },
     onError: (error: Error) => toast.error(error.message),
-  });
-
-  const createAdmin = useMutation({
-    mutationFn: async () => {
-      if (!adminShop) return;
-      const { error } = await supabase.functions.invoke("create-shop-admin", {
-        body: {
-          shop_id: adminShop.id,
-          full_name: adminFullName,
-          email: adminEmail,
-          password: adminPassword,
-        },
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Admin account created");
-      setAdminFullName("");
-      setAdminEmail("");
-      setAdminPassword("");
-      setAdminShop(null);
-    },
-    onError: (error) => {
-      void getFunctionErrorMessage(error).then((message) => toast.error(message));
-    },
   });
 
   const renameShopMutation = useMutation({
@@ -132,11 +105,6 @@ export default function ShopsPage() {
     event.preventDefault();
     if (!name.trim()) return;
     createShop.mutate(name.trim());
-  }
-
-  function handleCreateAdmin(event: FormEvent) {
-    event.preventDefault();
-    createAdmin.mutate();
   }
 
   function handleRename(event: FormEvent) {
@@ -203,16 +171,7 @@ export default function ShopsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onSelect={() => {
-                            setAdminFullName("");
-                            setAdminEmail("");
-                            setAdminPassword("");
-                            setAdminShop(shop);
-                          }}
-                        >
-                          Add admin
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setManageShop(shop)}>Manage admins</DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => {
                             setRenameName(shop.name);
@@ -237,49 +196,8 @@ export default function ShopsPage() {
         </CardContent>
       </Card>
 
-      {/* Add admin */}
-      <Dialog open={adminShop !== null} onOpenChange={(open) => !open && setAdminShop(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add admin to {adminShop?.name}</DialogTitle>
-          </DialogHeader>
-          <form className="flex flex-col gap-4" onSubmit={handleCreateAdmin}>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="admin-full-name">Full name</Label>
-              <Input
-                id="admin-full-name"
-                value={adminFullName}
-                onChange={(e) => setAdminFullName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="admin-email">Email</Label>
-              <Input
-                id="admin-email"
-                type="email"
-                value={adminEmail}
-                onChange={(e) => setAdminEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="admin-password">Temporary password</Label>
-              <Input
-                id="admin-password"
-                type="password"
-                minLength={8}
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" disabled={createAdmin.isPending}>
-              {createAdmin.isPending ? "Creating..." : "Create admin"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Manage admins (list / add / edit / delete) */}
+      <ShopAdminsDialog shop={manageShop} onOpenChange={(open) => !open && setManageShop(null)} />
 
       {/* Rename */}
       <Dialog open={renameShop !== null} onOpenChange={(open) => !open && setRenameShop(null)}>
