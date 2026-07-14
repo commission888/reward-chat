@@ -5,7 +5,7 @@
 
 // Overridable only for pointing tests at a local mock server — never set
 // SLIP2GO_BASE_URL in a real deployment.
-const SLIP2GO_BASE_URL = Deno.env.get("SLIP2GO_BASE_URL") ?? "https://api.slip2go.com";
+const SLIP2GO_BASE_URL = Deno.env.get("SLIP2GO_BASE_URL") ?? "https://connect.slip2go.com";
 
 export type Slip2GoCheckReceiver = {
   accountType: string;

@@ -17,6 +17,13 @@ import { verifySlipImage, describeSlip2GoCode, type Slip2GoCheckReceiver } from 
 const MATCH_DISTANCE_THRESHOLD = 0.5;
 const NO_MATCH_REPLY = "Sorry, I don't have information about that. Please contact the shop directly.";
 
+// Slip2Go codes that mean the slip is genuine and (if a receiver was supplied)
+// paid to the right account, so points may be credited. Both the image endpoint's
+// "Slip found" (bank-verified) and "Slip is valid" count. Fraud (200500),
+// receiver mismatch (200401), and duplicates (200501) have their own codes and
+// fall through to the rejection path below.
+const SLIP_SUCCESS_CODES = new Set(["200000", "200200"]);
+
 type LineEvent = {
   type: string;
   replyToken?: string;
@@ -28,7 +35,7 @@ type ShopRow = {
   id: string;
   line_channel_secret: string;
   line_channel_access_token: string;
-  points_config: { points_per_baht?: number } | null;
+  points_config: { points_per_baht?: number; points_per_slip?: number } | null;
   slip2go_api_secret: string | null;
   slip_receiver_account_type: string | null;
   slip_receiver_account_name_th: string | null;
@@ -244,7 +251,7 @@ async function handleSlipImage(params: {
       checkDuplicate: true,
     });
 
-    if (result.code !== "200000") {
+    if (!SLIP_SUCCESS_CODES.has(result.code)) {
       await service.from("slip_verifications").insert({
         shop_id: shopId,
         customer_id: customer.id,
@@ -257,8 +264,15 @@ async function handleSlipImage(params: {
     }
 
     const amount = result.data?.amount ?? 0;
-    const pointsPerBaht = shop.points_config?.points_per_baht ?? 1;
-    const pointsToAward = Math.floor(amount * pointsPerBaht);
+    // Flat per-slip crediting takes precedence when `points_per_slip` is set
+    // (GGWP: 1 point per verified slip regardless of amount); otherwise fall
+    // back to amount-based crediting via `points_per_baht`. `amount` is still
+    // recorded in `slip_verifications` below as the audit trail either way.
+    const config = shop.points_config ?? {};
+    const pointsToAward =
+      typeof config.points_per_slip === "number"
+        ? config.points_per_slip
+        : Math.floor(amount * (config.points_per_baht ?? 1));
 
     // The unique (shop_id, trans_ref) constraint is the real idempotency
     // guard — Slip2Go's own checkDuplicate is a second layer, not a
