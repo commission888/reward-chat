@@ -39,6 +39,7 @@ type ShopRow = {
   line_channel_secret: string;
   line_channel_access_token: string;
   liff_id: string | null;
+  openai_api_key: string | null;
   points_config: { points_per_baht?: number; points_per_slip?: number; redeem_threshold?: number } | null;
   slip2go_api_secret: string | null;
   slip_receiver_account_type: string | null;
@@ -59,7 +60,7 @@ Deno.serve(async (req: Request) => {
     const { data: shop, error: shopError } = await service
       .from("shops")
       .select(
-        "id, line_channel_secret, line_channel_access_token, liff_id, points_config, " +
+        "id, line_channel_secret, line_channel_access_token, liff_id, openai_api_key, points_config, " +
           "slip2go_api_secret, slip_receiver_account_type, slip_receiver_account_name_th, " +
           "slip_receiver_account_name_en, slip_receiver_account_number"
       )
@@ -107,7 +108,7 @@ Deno.serve(async (req: Request) => {
         const text = event.message.text;
         // deno-lint-ignore no-explicit-any
         (globalThis as any).EdgeRuntime?.waitUntil(
-          handleMessage({ shopId, userId, text, replyToken, accessToken })
+          handleMessage({ shopId, userId, text, replyToken, accessToken, apiKey: shop.openai_api_key })
         );
       } else if (event.message?.type === "image" && event.message.id) {
         if (!shop.slip2go_api_secret) continue; // slip verification not enabled for this shop
@@ -132,8 +133,9 @@ async function handleMessage(params: {
   text: string;
   replyToken: string;
   accessToken: string;
+  apiKey: string | null;
 }) {
-  const { shopId, userId, text, replyToken, accessToken } = params;
+  const { shopId, userId, text, replyToken, accessToken, apiKey } = params;
   const service = createServiceClient();
 
   try {
@@ -151,25 +153,36 @@ async function handleMessage(params: {
       message_text: text,
     });
 
-    const queryEmbedding = await createEmbedding(text);
-    const { data: matches, error: matchError } = await service.rpc("match_document_chunks", {
-      p_shop_id: shopId,
-      p_query_embedding: queryEmbedding,
-      p_match_count: 5,
-    });
-    if (matchError) throw new Error(matchError.message);
-
-    const relevant = (matches ?? []).filter((m: { distance: number }) => m.distance <= MATCH_DISTANCE_THRESHOLD);
-
     let replyText: string;
-    if (relevant.length === 0) {
+
+    // Every failure below this line ends in the outer catch, which only logs —
+    // so anything that throws leaves the customer staring at silence. A shop
+    // that hasn't added its OpenAI key yet is a configuration problem, not
+    // something to tell the customer about, so it degrades to the same canned
+    // reply as "no matching document" instead of throwing into that void.
+    if (!apiKey) {
+      console.warn(`line-webhook: shop ${shopId} has no openai_api_key — answering with the canned reply`);
       replyText = NO_MATCH_REPLY;
     } else {
-      const context = relevant.map((m: { content: string }) => m.content).join("\n---\n");
-      const systemPrompt =
-        "You are a helpful assistant for this shop. Answer the customer's question using ONLY the context " +
-        "below. If the answer isn't in the context, say you don't have that information.\n\nContext:\n" + context;
-      replyText = await createChatReply(systemPrompt, text);
+      const queryEmbedding = await createEmbedding(text, apiKey);
+      const { data: matches, error: matchError } = await service.rpc("match_document_chunks", {
+        p_shop_id: shopId,
+        p_query_embedding: queryEmbedding,
+        p_match_count: 5,
+      });
+      if (matchError) throw new Error(matchError.message);
+
+      const relevant = (matches ?? []).filter((m: { distance: number }) => m.distance <= MATCH_DISTANCE_THRESHOLD);
+
+      if (relevant.length === 0) {
+        replyText = NO_MATCH_REPLY;
+      } else {
+        const context = relevant.map((m: { content: string }) => m.content).join("\n---\n");
+        const systemPrompt =
+          "You are a helpful assistant for this shop. Answer the customer's question using ONLY the context " +
+          "below. If the answer isn't in the context, say you don't have that information.\n\nContext:\n" + context;
+        replyText = await createChatReply(systemPrompt, text, apiKey);
+      }
     }
 
     try {

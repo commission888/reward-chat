@@ -36,6 +36,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     "nav.rewards": "Rewards",
     "nav.redemptions": "Redemptions",
     "nav.knowledgeBase": "Knowledge Base",
+    "nav.aiSettings": "AI Settings",
     "nav.lineSettings": "LINE Settings",
     "nav.paymentSettings": "Payment Settings",
     "nav.shops": "Shops",
@@ -90,6 +91,28 @@ export const translations: Record<Lang, Record<string, string>> = {
     "kb.uploaded": "Uploaded",
     "kb.uploadedToast": "File uploaded, processing started",
     "kb.noShopContext": "No shop context",
+
+    "ai.title": "AI settings",
+    "ai.subtitle": "Your shop's own OpenAI key powers the chatbot's answers.",
+    "ai.keyTitle": "OpenAI API key",
+    "ai.keyHint":
+      "Used to read your uploaded documents and write the chatbot's replies. Usage is billed to your own OpenAI account. Slip verification does not use this key and keeps working without it.",
+    "ai.keyLabel": "API key",
+    "ai.keyPlaceholder": "sk-...",
+    "ai.keyPlaceholderSet": "A key is saved — enter a new one to replace it",
+    "ai.keySource": "OpenAI dashboard → API keys → Create new secret key",
+    "ai.statusSet": "Connected",
+    "ai.statusMissing": "Not set up",
+    "ai.warnMissing":
+      "Until you add a key, your chatbot replies that it doesn't have the information, and document uploads will fail.",
+    "ai.checking": "Checking key...",
+    "ai.saved": "Key saved and verified",
+    "ai.cleared": "Key removed",
+    "ai.errSave": "Could not save the key",
+    "ai.openDashboard": "Open OpenAI dashboard",
+    "ai.costTitle": "What you'll be charged for",
+    "ai.costBody":
+      "Two things: reading each document you upload (once per upload), and each customer question your bot answers. Both are billed by OpenAI directly to the payment method on your OpenAI account — not through RewardChat.",
 
     "line.title": "LINE settings",
     "line.subtitle": "Connect your shop's LINE Official Account and LIFF app.",
@@ -299,6 +322,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     "nav.rewards": "ของรางวัล",
     "nav.redemptions": "การแลกรางวัล",
     "nav.knowledgeBase": "ฐานความรู้",
+    "nav.aiSettings": "ตั้งค่า AI",
     "nav.lineSettings": "ตั้งค่า LINE",
     "nav.paymentSettings": "ตั้งค่าการชำระเงิน",
     "nav.shops": "ร้านค้า",
@@ -353,6 +377,28 @@ export const translations: Record<Lang, Record<string, string>> = {
     "kb.uploaded": "อัปโหลดเมื่อ",
     "kb.uploadedToast": "อัปโหลดไฟล์แล้ว กำลังประมวลผล",
     "kb.noShopContext": "ไม่พบข้อมูลร้าน",
+
+    "ai.title": "ตั้งค่า AI",
+    "ai.subtitle": "แชทบอทของร้านคุณทำงานด้วย OpenAI key ของร้านเอง",
+    "ai.keyTitle": "OpenAI API key",
+    "ai.keyHint":
+      "ใช้อ่านเอกสารที่คุณอัปโหลดและใช้เขียนคำตอบของแชทบอท ค่าใช้จ่ายเรียกเก็บที่บัญชี OpenAI ของคุณเอง ส่วนการตรวจสลิปไม่ได้ใช้ key นี้ ยังทำงานได้ตามปกติแม้ไม่ใส่",
+    "ai.keyLabel": "API key",
+    "ai.keyPlaceholder": "sk-...",
+    "ai.keyPlaceholderSet": "มี key บันทึกไว้แล้ว ใส่ตัวใหม่เพื่อเปลี่ยน",
+    "ai.keySource": "หน้า OpenAI dashboard → API keys → Create new secret key",
+    "ai.statusSet": "เชื่อมต่อแล้ว",
+    "ai.statusMissing": "ยังไม่ได้ตั้งค่า",
+    "ai.warnMissing":
+      "ถ้ายังไม่ใส่ key แชทบอทจะตอบลูกค้าว่าไม่มีข้อมูล และการอัปโหลดเอกสารจะไม่สำเร็จ",
+    "ai.checking": "กำลังตรวจสอบ key...",
+    "ai.saved": "บันทึกและตรวจสอบ key เรียบร้อย",
+    "ai.cleared": "ลบ key แล้ว",
+    "ai.errSave": "บันทึก key ไม่สำเร็จ",
+    "ai.openDashboard": "เปิดหน้า OpenAI dashboard",
+    "ai.costTitle": "สิ่งที่คุณจะถูกเรียกเก็บเงิน",
+    "ai.costBody":
+      "มีสองอย่าง: การอ่านเอกสารแต่ละไฟล์ที่อัปโหลด (คิดครั้งเดียวต่อการอัปโหลด) และทุกคำถามที่บอทตอบลูกค้า ทั้งสองอย่าง OpenAI เรียกเก็บจากบัตรในบัญชี OpenAI ของคุณโดยตรง ไม่ได้ผ่าน RewardChat",
 
     "line.title": "ตั้งค่า LINE",
     "line.subtitle": "เชื่อมต่อ LINE Official Account และ LIFF ของร้านคุณ",

@@ -14,6 +14,7 @@ import CustomersPage from "@/routes/CustomersPage";
 import CustomerDetailPage from "@/routes/CustomerDetailPage";
 import ScanPage from "@/routes/ScanPage";
 import KnowledgeBasePage from "@/routes/KnowledgeBasePage";
+import AiSettingsPage from "@/routes/AiSettingsPage";
 import LineSettingsPage from "@/routes/LineSettingsPage";
 import PaymentSettingsPage from "@/routes/PaymentSettingsPage";
 import RewardsPage from "@/routes/RewardsPage";
@@ -100,6 +101,14 @@ function App() {
                 element={
                   <RequireRole roles={["admin"]}>
                     <KnowledgeBasePage />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/settings/ai"
+                element={
+                  <RequireRole roles={["admin"]}>
+                    <AiSettingsPage />
                   </RequireRole>
                 }
               />

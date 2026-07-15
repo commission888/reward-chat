@@ -1,14 +1,17 @@
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const EMBEDDING_MODEL = "text-embedding-3-small";
 const CHAT_MODEL = "gpt-4o-mini";
 
-function requireApiKey(): string {
-  if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
-  return OPENAI_API_KEY;
-}
+// The API key is passed in rather than read from the environment: each shop
+// brings its own (shops.openai_api_key), so there is no single key this module
+// could sensibly reach for. Callers load the shop first and pass its key.
+//
+// Note the embedding model is deliberately NOT a per-shop choice. Every vector
+// in document_chunks must come from the same model to be comparable, and the
+// column and match_document_chunks() are both typed vector(1536) to match this
+// one. Swapping the *key* is safe — same model, same vectors — but swapping the
+// model would silently make old chunks unfindable.
 
-export async function createEmbeddings(inputs: string[]): Promise<number[][]> {
-  const apiKey = requireApiKey();
+export async function createEmbeddings(inputs: string[], apiKey: string): Promise<number[][]> {
   const res = await fetch("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: {
@@ -26,13 +29,16 @@ export async function createEmbeddings(inputs: string[]): Promise<number[][]> {
     .map((item: { embedding: number[] }) => item.embedding);
 }
 
-export async function createEmbedding(input: string): Promise<number[]> {
-  const [embedding] = await createEmbeddings([input]);
+export async function createEmbedding(input: string, apiKey: string): Promise<number[]> {
+  const [embedding] = await createEmbeddings([input], apiKey);
   return embedding;
 }
 
-export async function createChatReply(systemPrompt: string, userMessage: string): Promise<string> {
-  const apiKey = requireApiKey();
+export async function createChatReply(
+  systemPrompt: string,
+  userMessage: string,
+  apiKey: string
+): Promise<string> {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -53,4 +59,21 @@ export async function createChatReply(systemPrompt: string, userMessage: string)
   }
   const json = await res.json();
   return json.choices[0].message.content as string;
+}
+
+// Cheapest possible round-trip that proves a key is real and has quota. Used at
+// save time so a shop finds out their key is wrong while they're looking at the
+// field, rather than via a chatbot that answers nothing days later.
+export async function checkApiKey(apiKey: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  let res: Response;
+  try {
+    res = await fetch("https://api.openai.com/v1/models", {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+  } catch (error) {
+    return { ok: false, reason: error instanceof Error ? error.message : "Could not reach OpenAI" };
+  }
+  if (res.ok) return { ok: true };
+  if (res.status === 401) return { ok: false, reason: "OpenAI rejected this key" };
+  return { ok: false, reason: `OpenAI returned ${res.status}` };
 }

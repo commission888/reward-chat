@@ -48,6 +48,26 @@ Deno.serve(async (req: Request) => {
     }
 
     service = createServiceClient();
+
+    // The shop pays for its own embeddings. Check before marking the file
+    // "processing" so a missing key reads as "you haven't set this up" rather
+    // than a file stuck mid-flight.
+    const { data: shop } = await service
+      .from("shops")
+      .select("openai_api_key")
+      .eq("id", file.shop_id)
+      .single();
+    if (!shop?.openai_api_key) {
+      await service
+        .from("files")
+        .update({ status: "failed", error_message: "No OpenAI API key configured for this shop" })
+        .eq("id", file_id);
+      return jsonResponse(
+        { error: "Add your shop's OpenAI API key in AI settings before uploading documents." },
+        { status: 400 }
+      );
+    }
+
     await service.from("files").update({ status: "processing" }).eq("id", file_id);
 
     const chunks = chunkText(text);
@@ -61,7 +81,7 @@ Deno.serve(async (req: Request) => {
 
     for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
       const batch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
-      const embeddings = await createEmbeddings(batch);
+      const embeddings = await createEmbeddings(batch, shop.openai_api_key);
       const rows = batch.map((content, j) => ({
         shop_id: file.shop_id,
         file_id,

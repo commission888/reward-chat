@@ -17,6 +17,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/rewards", labelKey: "nav.rewards" },
     { to: "/redemptions", labelKey: "nav.redemptions" },
     { to: "/knowledge-base", labelKey: "nav.knowledgeBase" },
+    { to: "/settings/ai", labelKey: "nav.aiSettings" },
     { to: "/settings/line", labelKey: "nav.lineSettings" },
     { to: "/settings/payments", labelKey: "nav.paymentSettings" },
   ],
