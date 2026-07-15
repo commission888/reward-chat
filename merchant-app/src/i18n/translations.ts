@@ -109,46 +109,29 @@ export const translations: Record<Lang, Record<string, string>> = {
       "Paste this into your LIFF app's Endpoint URL. Both query parameters are required — opened without them, the customer app can't tell which shop it belongs to and shows \"Missing shop_id\".",
     "line.endpointPending": "Save your LIFF ID below and this link will appear, ready to copy.",
 
-    "line.guide.title": "Setup guide",
+    "line.guide.title": "Two channels, and what goes where",
     "line.guide.subtitle":
-      "You'll go back and forth between the LINE Developers Console and this page: four values are copied from the console into the form below, and two links are copied from this page into the console.",
+      "Create both under the same Provider in the LINE Developers Console, then swap values with this page.",
     "line.guide.openConsole": "Open LINE Developers Console",
+    "line.guide.pull": "Copy from LINE → paste below",
+    "line.guide.push": "Copy from here → paste into LINE",
 
-    "line.guide.step1.title": "Create a Messaging API channel",
-    "line.guide.step1.body":
-      "In the LINE Developers Console, pick a Provider (or create one), then add a new channel of type Messaging API. This channel is your shop's chatbot — the account customers chat with.",
+    "line.guide.bot.title": "Messaging API channel",
+    "line.guide.bot.for": "Chatbot",
+    "line.guide.bot.note":
+      "Channel ID and secret are under Basic settings; issue a long-lived access token on the Messaging API tab. After pasting the webhook, turn on \"Use webhook\" and press Verify.",
+    "line.guide.bot.warn":
+      "Switch off auto-reply and greeting messages in LINE Official Account Manager, or LINE replies instead of your bot.",
 
-    "line.guide.step2.title": "Copy the Channel ID and Channel secret",
-    "line.guide.step2.body":
-      "Open that channel and go to Basic settings. Copy the Channel ID and the Channel secret into the Channel credentials form below.",
+    "line.guide.liff.title": "LINE Login channel",
+    "line.guide.liff.for": "Loyalty card",
+    "line.guide.liff.note":
+      "On the LIFF tab, add an app with size Full and the profile and openid scopes. Set Endpoint URL to {baseUrl} for now — the field needs a real https address — then paste the full link back once it appears here.",
+    "line.guide.liff.warn":
+      "A LIFF app can't be added to the Messaging API channel — this second channel is required.",
 
-    "line.guide.step3.title": "Issue a Channel access token",
-    "line.guide.step3.body":
-      "In the same channel, go to the Messaging API tab and issue a long-lived channel access token. Copy it into the form below, then press Save.",
-
-    "line.guide.step4.title": "Paste the Webhook URL into the channel",
-    "line.guide.step4.body":
-      "Copy the Webhook URL from the card above into the Messaging API tab's webhook settings, turn on \"Use webhook\", and press Verify. Save your credentials here first — verification only succeeds once this page knows your Channel secret.",
-
-    "line.guide.step5.title": "Turn off LINE's automatic replies",
-    "line.guide.step5.body":
-      "In the LINE Official Account Manager, switch off the auto-reply and greeting messages. If you leave them on, LINE answers with its own canned message instead of your bot.",
-
-    "line.guide.step6.title": "Create a second channel for LINE Login",
-    "line.guide.step6.body":
-      "The loyalty card can't live on the Messaging API channel — LINE no longer allows adding a LIFF app there. Under the same Provider, create another channel of type LINE Login.",
-
-    "line.guide.step7.title": "Add a LIFF app and copy the LIFF ID",
-    "line.guide.step7.body":
-      "In the LINE Login channel, open the LIFF tab and add an app. Choose size Full, enable the profile and openid scopes, and set Endpoint URL to {baseUrl} for now — the field only accepts a real https address, and you'll replace it with the full link in the next step. Copy the LIFF ID it gives you into the form below and press Save.",
-
-    "line.guide.step8.title": "Copy the finished Endpoint URL back",
-    "line.guide.step8.body":
-      "Once the LIFF ID is saved, the LIFF Endpoint URL card above shows the complete link with your shop's ID filled in. Copy it back into your LIFF app's Endpoint URL and update it. This closes the loop: the URL needs the LIFF ID, which only exists after the app is created.",
-
-    "line.guide.step9.title": "Give customers a way in",
-    "line.guide.step9.body":
-      "Add a rich menu or a link in your LINE Official Account pointing at your LIFF app, so customers can open their loyalty card from the chat.",
+    "line.guide.entry":
+      "Last step: add a rich menu or link in your LINE Official Account pointing at the LIFF app, so customers can open their card from the chat.",
 
     "pay.title": "Payment settings",
     "pay.subtitle": "When configured, customers who send a payment slip photo directly in your LINE chat get it verified and points credited automatically.",
@@ -378,46 +361,29 @@ export const translations: Record<Lang, Record<string, string>> = {
       "นำลิงก์นี้ไปวางในช่อง Endpoint URL ของ LIFF app ต้องมี query parameter ทั้งสองตัวเสมอ ถ้าเปิดโดยไม่มี แอปฝั่งลูกค้าจะไม่รู้ว่าเป็นของร้านไหน และจะขึ้นว่า \"Missing shop_id\"",
     "line.endpointPending": "บันทึก LIFF ID ด้านล่างก่อน แล้วลิงก์จะขึ้นตรงนี้ให้คัดลอกได้เลย",
 
-    "line.guide.title": "วิธีตั้งค่า",
+    "line.guide.title": "2 Channel และค่าที่ต้องสลับกัน",
     "line.guide.subtitle":
-      "ขั้นตอนนี้ต้องสลับไปมาระหว่าง LINE Developers Console กับหน้านี้ โดยมีค่า 4 ตัวที่คัดลอกจาก Console มาใส่ในฟอร์มด้านล่าง และลิงก์ 2 ตัวที่คัดลอกจากหน้านี้ไปใส่ใน Console",
+      "สร้างทั้งสองตัวใต้ Provider เดียวกันใน LINE Developers Console แล้วสลับค่ากับหน้านี้",
     "line.guide.openConsole": "เปิด LINE Developers Console",
+    "line.guide.pull": "คัดลอกจาก LINE → วางด้านล่าง",
+    "line.guide.push": "คัดลอกจากที่นี่ → วางใน LINE",
 
-    "line.guide.step1.title": "สร้าง Channel แบบ Messaging API",
-    "line.guide.step1.body":
-      "ใน LINE Developers Console เลือก Provider ที่มีอยู่หรือสร้างใหม่ แล้วสร้าง Channel ใหม่แบบ Messaging API — Channel นี้คือแชทบอทของร้าน เป็นบัญชีที่ลูกค้าจะทักเข้ามาคุยด้วย",
+    "line.guide.bot.title": "Channel แบบ Messaging API",
+    "line.guide.bot.for": "แชทบอท",
+    "line.guide.bot.note":
+      "Channel ID กับ secret อยู่ในแท็บ Basic settings ส่วน access token กดออกแบบ long-lived ที่แท็บ Messaging API พอวาง webhook แล้วให้เปิด \"Use webhook\" และกด Verify",
+    "line.guide.bot.warn":
+      "ปิดข้อความตอบกลับอัตโนมัติและข้อความทักทายใน LINE Official Account Manager ไม่งั้น LINE จะตอบแทนบอทของเรา",
 
-    "line.guide.step2.title": "คัดลอก Channel ID และ Channel secret",
-    "line.guide.step2.body":
-      "เปิด Channel นั้นแล้วไปที่แท็บ Basic settings คัดลอก Channel ID และ Channel secret มาใส่ในฟอร์มข้อมูลรับรอง Channel ด้านล่าง",
+    "line.guide.liff.title": "Channel แบบ LINE Login",
+    "line.guide.liff.for": "บัตรสะสมแต้ม",
+    "line.guide.liff.note":
+      "ที่แท็บ LIFF ให้เพิ่ม app ขนาด Full เปิด scope profile และ openid ช่อง Endpoint URL ใส่ {baseUrl} ไปก่อนเพราะช่องนี้รับเฉพาะ https จริง แล้วค่อยเอาลิงก์ตัวเต็มกลับมาวางเมื่อมันขึ้นที่นี่",
+    "line.guide.liff.warn":
+      "LIFF app เพิ่มใน Channel แบบ Messaging API ไม่ได้ จำเป็นต้องมี Channel ตัวที่สองนี้",
 
-    "line.guide.step3.title": "ออก Channel access token",
-    "line.guide.step3.body":
-      "ใน Channel เดิม ไปที่แท็บ Messaging API แล้วกดออก channel access token แบบ long-lived คัดลอกมาใส่ในฟอร์มด้านล่าง แล้วกดบันทึก",
-
-    "line.guide.step4.title": "นำ Webhook URL ไปใส่ใน Channel",
-    "line.guide.step4.body":
-      "คัดลอก Webhook URL จากการ์ดด้านบนไปวางในการตั้งค่า Webhook ที่แท็บ Messaging API เปิดสวิตช์ \"Use webhook\" แล้วกด Verify ควรกดบันทึกข้อมูลรับรองที่หน้านี้ก่อน เพราะการ Verify จะผ่านก็ต่อเมื่อระบบรู้จัก Channel secret ของคุณแล้ว",
-
-    "line.guide.step5.title": "ปิดข้อความตอบกลับอัตโนมัติของ LINE",
-    "line.guide.step5.body":
-      "ใน LINE Official Account Manager ให้ปิดการตอบกลับอัตโนมัติและข้อความทักทาย ถ้าเปิดทิ้งไว้ LINE จะตอบลูกค้าด้วยข้อความสำเร็จรูปของตัวเองแทนที่จะเป็นบอทของเรา",
-
-    "line.guide.step6.title": "สร้าง Channel ที่สองแบบ LINE Login",
-    "line.guide.step6.body":
-      "บัตรสะสมแต้มไม่สามารถอยู่บน Channel แบบ Messaging API ได้ เพราะ LINE ไม่อนุญาตให้เพิ่ม LIFF app ที่นั่นอีกต่อไป ให้สร้าง Channel อีกตัวแบบ LINE Login ภายใต้ Provider เดียวกัน",
-
-    "line.guide.step7.title": "เพิ่ม LIFF app แล้วคัดลอก LIFF ID",
-    "line.guide.step7.body":
-      "ใน Channel แบบ LINE Login เปิดแท็บ LIFF แล้วกดเพิ่ม app เลือกขนาด Full เปิด scope profile และ openid ส่วนช่อง Endpoint URL ให้ใส่ {baseUrl} ไปก่อน เพราะช่องนี้รับเฉพาะ https จริง ๆ เท่านั้น เดี๋ยวเรามาแก้เป็นลิงก์ตัวเต็มในขั้นถัดไป จากนั้นคัดลอก LIFF ID ที่ได้มาใส่ในฟอร์มด้านล่างแล้วกดบันทึก",
-
-    "line.guide.step8.title": "คัดลอก Endpoint URL ตัวเต็มกลับไปใส่",
-    "line.guide.step8.body":
-      "พอบันทึก LIFF ID แล้ว การ์ด LIFF Endpoint URL ด้านบนจะแสดงลิงก์ตัวเต็มที่ใส่ ID ร้านของคุณให้เรียบร้อย คัดลอกกลับไปวางในช่อง Endpoint URL ของ LIFF app แล้วกดอัปเดต ที่ต้องทำสองรอบเพราะลิงก์ต้องใช้ LIFF ID ซึ่งจะมีก็ต่อเมื่อสร้าง app เสร็จแล้ว",
-
-    "line.guide.step9.title": "ทำทางเข้าให้ลูกค้า",
-    "line.guide.step9.body":
-      "เพิ่มริชเมนูหรือลิงก์ใน LINE Official Account ให้ชี้ไปที่ LIFF app ของคุณ เพื่อให้ลูกค้าเปิดบัตรสะสมแต้มจากในแชทได้",
+    "line.guide.entry":
+      "ขั้นสุดท้าย: เพิ่มริชเมนูหรือลิงก์ใน LINE Official Account ให้ชี้ไปที่ LIFF app เพื่อให้ลูกค้าเปิดบัตรจากในแชทได้",
 
     "pay.title": "ตั้งค่าการชำระเงิน",
     "pay.subtitle": "เมื่อตั้งค่าแล้ว ลูกค้าที่ส่งรูปสลิปในแชท LINE จะได้รับการตรวจสอบและเพิ่มแต้มอัตโนมัติ",

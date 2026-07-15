@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Copy, ExternalLink } from "lucide-react";
+import { Copy, Download, ExternalLink, TriangleAlert, Upload } from "lucide-react";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,17 +28,26 @@ const LINE_CONSOLE_URL = "https://developers.line.biz/console/";
 const LIFF_APP_BASE_URL: string =
   import.meta.env.VITE_LIFF_APP_URL ?? "https://rewardchat-liff.vercel.app";
 
-// Module scope can't call useI18n(), so steps carry key strings that render resolves.
-const SETUP_STEPS = [
-  { titleKey: "line.guide.step1.title", bodyKey: "line.guide.step1.body" },
-  { titleKey: "line.guide.step2.title", bodyKey: "line.guide.step2.body" },
-  { titleKey: "line.guide.step3.title", bodyKey: "line.guide.step3.body" },
-  { titleKey: "line.guide.step4.title", bodyKey: "line.guide.step4.body" },
-  { titleKey: "line.guide.step5.title", bodyKey: "line.guide.step5.body" },
-  { titleKey: "line.guide.step6.title", bodyKey: "line.guide.step6.body" },
-  { titleKey: "line.guide.step7.title", bodyKey: "line.guide.step7.body" },
-  { titleKey: "line.guide.step8.title", bodyKey: "line.guide.step8.body" },
-  { titleKey: "line.guide.step9.title", bodyKey: "line.guide.step9.body" },
+// The whole setup collapses to this: two LINE channels, each with values you pull
+// out of the console and values you push back into it. Module scope can't call
+// useI18n(), so these carry key strings that render resolves.
+const CHANNELS = [
+  {
+    titleKey: "line.guide.bot.title",
+    forKey: "line.guide.bot.for",
+    noteKey: "line.guide.bot.note",
+    warnKey: "line.guide.bot.warn",
+    pullKeys: ["line.channelId", "line.channelSecret", "line.channelAccessToken"],
+    pushKeys: ["line.webhookUrl"],
+  },
+  {
+    titleKey: "line.guide.liff.title",
+    forKey: "line.guide.liff.for",
+    noteKey: "line.guide.liff.note",
+    warnKey: "line.guide.liff.warn",
+    pullKeys: ["line.liffId"],
+    pushKeys: ["line.endpointUrl"],
+  },
 ] as const;
 
 function CopyableUrl({ value }: { value: string }) {
@@ -154,25 +164,65 @@ export default function LineSettingsPage() {
           <CardTitle>{t("line.guide.title")}</CardTitle>
           <CardDescription>{t("line.guide.subtitle")}</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          <ol className="flex flex-col gap-5">
-            {SETUP_STEPS.map((step, index) => (
-              <li key={step.titleKey} className="flex gap-3">
-                <span
-                  aria-hidden
-                  className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
-                >
-                  {index + 1}
-                </span>
-                <div className="flex flex-col gap-1">
-                  <p className="font-medium text-foreground">{t(step.titleKey)}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {t(step.bodyKey, { baseUrl: LIFF_APP_BASE_URL })}
-                  </p>
+        <CardContent className="flex flex-col gap-4">
+          <ol className="grid gap-4 md:grid-cols-2">
+            {CHANNELS.map((channel, index) => (
+              <li
+                key={channel.titleKey}
+                className="flex flex-col gap-3 rounded-lg border border-border p-4"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+                  >
+                    {index + 1}
+                  </span>
+                  <p className="font-medium text-foreground">{t(channel.titleKey)}</p>
+                  <Badge variant="secondary">{t(channel.forKey)}</Badge>
                 </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <Download className="size-3.5" aria-hidden />
+                    {t("line.guide.pull")}
+                  </p>
+                  <ul className="flex flex-wrap gap-1.5">
+                    {channel.pullKeys.map((key) => (
+                      <li key={key}>
+                        <Badge variant="outline">{t(key)}</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <Upload className="size-3.5" aria-hidden />
+                    {t("line.guide.push")}
+                  </p>
+                  <ul className="flex flex-wrap gap-1.5">
+                    {channel.pushKeys.map((key) => (
+                      <li key={key}>
+                        <Badge variant="outline">{t(key)}</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  {t(channel.noteKey, { baseUrl: LIFF_APP_BASE_URL })}
+                </p>
+                <p className="flex gap-1.5 text-xs text-foreground">
+                  <TriangleAlert className="size-3.5 shrink-0 translate-y-0.5 text-primary" aria-hidden />
+                  {t(channel.warnKey)}
+                </p>
               </li>
             ))}
           </ol>
+
+          <p className="text-sm text-muted-foreground">{t("line.guide.entry")}</p>
+
           <Button asChild variant="outline" size="sm" className="self-start">
             <a href={LINE_CONSOLE_URL} target="_blank" rel="noreferrer">
               {t("line.guide.openConsole")}
