@@ -128,7 +128,13 @@ export default function PaymentSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          {/* One column on a phone, two from sm up. The fields used to carry
+              fixed widths (w-72/w-64/w-56) inside a flex-wrap row, so on a narrow
+              screen they wrapped but kept their width — ragged edges, and w-72
+              overflowed the card on the smallest phones. Widths now come from the
+              grid, and max-w-3xl stops them stretching to silly lengths on a
+              desktop. */}
+          <form className="flex max-w-3xl flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="slip2go_api_secret">{t("pay.apiSecret")}</Label>
               <Input
@@ -143,7 +149,7 @@ export default function PaymentSettingsPage() {
               {t("pay.warning")}
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="slip_receiver_account_type">{t("pay.bank")}</Label>
                 <Select
@@ -152,7 +158,9 @@ export default function PaymentSettingsPage() {
                     setForm((f) => ({ ...f, slip_receiver_account_type: value }))
                   }
                 >
-                  <SelectTrigger id="slip_receiver_account_type" className="w-72">
+                  {/* min-w-0 lets a long bank name shrink instead of forcing the
+                      grid column wider than the screen. */}
+                  <SelectTrigger id="slip_receiver_account_type" className="w-full min-w-0">
                     <SelectValue placeholder={t("pay.selectBank")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -168,18 +176,16 @@ export default function PaymentSettingsPage() {
                 <Label htmlFor="slip_receiver_account_number">{t("pay.accountNumber")}</Label>
                 <Input
                   id="slip_receiver_account_number"
-                  className="w-56"
+                  inputMode="numeric"
+                  autoComplete="off"
                   value={form.slip_receiver_account_number}
                   onChange={(e) => setForm((f) => ({ ...f, slip_receiver_account_number: e.target.value }))}
                 />
               </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="slip_receiver_account_name_th">{t("pay.accountNameTh")}</Label>
                 <Input
                   id="slip_receiver_account_name_th"
-                  className="w-64"
                   value={form.slip_receiver_account_name_th}
                   onChange={(e) => setForm((f) => ({ ...f, slip_receiver_account_name_th: e.target.value }))}
                 />
@@ -188,14 +194,15 @@ export default function PaymentSettingsPage() {
                 <Label htmlFor="slip_receiver_account_name_en">{t("pay.accountNameEn")}</Label>
                 <Input
                   id="slip_receiver_account_name_en"
-                  className="w-64"
                   value={form.slip_receiver_account_name_en}
                   onChange={(e) => setForm((f) => ({ ...f, slip_receiver_account_name_en: e.target.value }))}
                 />
               </div>
             </div>
 
-            <Button type="submit" disabled={save.isPending} className="self-start">
+            {/* Full-width on a phone, where a small button in a big empty row is
+                just a smaller tap target for no reason. */}
+            <Button type="submit" disabled={save.isPending} className="w-full sm:w-auto sm:self-start">
               {save.isPending ? t("common.saving") : t("common.save")}
             </Button>
           </form>
