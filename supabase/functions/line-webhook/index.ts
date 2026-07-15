@@ -18,7 +18,20 @@ import { buildSlipCard, slipCardAltText } from "./slipCard.ts";
 // outside the shop's uploaded docs rather than falling back to general
 // knowledge, to avoid hallucinated answers about a specific shop's policies.
 const MATCH_DISTANCE_THRESHOLD = 0.5;
-const NO_MATCH_REPLY = "Sorry, I don't have information about that. Please contact the shop directly.";
+
+// LINE sends no locale on a message event, so the customer's own text is the
+// only signal there is. Thai has its own Unicode block, so a single Thai
+// character is a reliable tell — no detection library or extra model call.
+// Anything else falls back to English rather than guessing.
+const THAI_CHARACTER = /[\u0E00-\u0E7F]/;
+
+// Hardcoded here rather than routed through t(): that lives in the browser, and
+// this is the same treatment the slip replies in describeSlip2GoCode already get.
+function noMatchReply(customerText: string): string {
+  return THAI_CHARACTER.test(customerText)
+    ? "ขออภัย ไม่มีข้อมูลเรื่องนี้ กรุณาติดต่อร้านโดยตรง"
+    : "Sorry, I don't have information about that. Please contact the shop directly.";
+}
 
 // Slip2Go codes that mean the slip is genuine and (if a receiver was supplied)
 // paid to the right account, so points may be credited. Both the image endpoint's
@@ -162,7 +175,7 @@ async function handleMessage(params: {
     // reply as "no matching document" instead of throwing into that void.
     if (!apiKey) {
       console.warn(`line-webhook: shop ${shopId} has no openai_api_key — answering with the canned reply`);
-      replyText = NO_MATCH_REPLY;
+      replyText = noMatchReply(text);
     } else {
       const queryEmbedding = await createEmbedding(text, apiKey);
       const { data: matches, error: matchError } = await service.rpc("match_document_chunks", {
@@ -175,12 +188,19 @@ async function handleMessage(params: {
       const relevant = (matches ?? []).filter((m: { distance: number }) => m.distance <= MATCH_DISTANCE_THRESHOLD);
 
       if (relevant.length === 0) {
-        replyText = NO_MATCH_REPLY;
+        replyText = noMatchReply(text);
       } else {
         const context = relevant.map((m: { content: string }) => m.content).join("\n---\n");
+        // The language line is a *form* instruction, so it doesn't loosen the
+        // strict-grounding rule next to it — and it makes the model's own
+        // "I don't have that" come out in the customer's language too, which the
+        // canned reply above can't cover once a shop has documents. The shop's
+        // docs may well be in a different language from the question; answering
+        // in the customer's is the point.
         const systemPrompt =
           "You are a helpful assistant for this shop. Answer the customer's question using ONLY the context " +
-          "below. If the answer isn't in the context, say you don't have that information.\n\nContext:\n" + context;
+          "below. If the answer isn't in the context, say you don't have that information. " +
+          "Always reply in the same language the customer wrote their question in.\n\nContext:\n" + context;
         replyText = await createChatReply(systemPrompt, text, apiKey);
       }
     }
