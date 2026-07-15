@@ -258,6 +258,64 @@ export type Database = {
           },
         ]
       }
+      point_grants: {
+        Row: {
+          claimed_at: string | null
+          claimed_by_customer_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          points: number
+          shop_id: string
+          staff_user_id: string | null
+          token: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by_customer_id?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          points: number
+          shop_id: string
+          staff_user_id?: string | null
+          token: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by_customer_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          points?: number
+          shop_id?: string
+          staff_user_id?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_grants_claimed_by_customer_id_fkey"
+            columns: ["claimed_by_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_grants_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_grants_staff_user_id_fkey"
+            columns: ["staff_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       points_transactions: {
         Row: {
           balance_after: number
@@ -466,6 +524,7 @@ export type Database = {
           line_channel_id: string | null
           line_channel_secret: string | null
           name: string
+          openai_api_key: string | null
           points_config: Json
           slip_receiver_account_name_en: string | null
           slip_receiver_account_name_th: string | null
@@ -483,6 +542,7 @@ export type Database = {
           line_channel_id?: string | null
           line_channel_secret?: string | null
           name: string
+          openai_api_key?: string | null
           points_config?: Json
           slip_receiver_account_name_en?: string | null
           slip_receiver_account_name_th?: string | null
@@ -500,6 +560,7 @@ export type Database = {
           line_channel_id?: string | null
           line_channel_secret?: string | null
           name?: string
+          openai_api_key?: string | null
           points_config?: Json
           slip_receiver_account_name_en?: string | null
           slip_receiver_account_name_th?: string | null
@@ -590,6 +651,13 @@ export type Database = {
       cancel_redemption: {
         Args: { p_redemption_id: string }
         Returns: undefined
+      }
+      claim_point_grant: {
+        Args: { p_customer_id: string; p_token: string }
+        Returns: {
+          balance: number
+          points: number
+        }[]
       }
       complete_redemption: {
         Args: { p_redemption_id: string }
