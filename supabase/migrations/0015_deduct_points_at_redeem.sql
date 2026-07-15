@@ -87,7 +87,15 @@ grant execute on function public.create_redemption(uuid, uuid, text) to service_
 -- No longer touches points — they went at create. Approval is now only the
 -- shop confirming they handed the thing over. The pending guard stays: it stops
 -- a coupon being marked used twice.
-create or replace function public.complete_redemption(p_redemption_id uuid)
+--
+-- It used to return the new balance, and there is no balance to return any
+-- more. Postgres refuses to change a return type via `create or replace`
+-- (42P13), so this must drop first — which silently discards the function's
+-- grants with it. The re-grant further down is therefore not boilerplate:
+-- without it, staff lose the ability to approve coupons at all.
+drop function if exists public.complete_redemption(uuid);
+
+create function public.complete_redemption(p_redemption_id uuid)
 returns void
 language plpgsql
 security definer
@@ -180,6 +188,12 @@ begin
   where id = p_redemption_id;
 end;
 $$;
+
+-- Restores what the DROP above threw away. cancel_redemption keeps its own
+-- grants (replaced, not dropped), but both are restated so the pair reads in one
+-- place rather than having to be inferred from 0011.
+grant execute on function public.complete_redemption(uuid) to authenticated, service_role;
+grant execute on function public.cancel_redemption(uuid) to authenticated, service_role;
 
 -- ------------------------------------------------- existing pending rows --
 -- Anything pending right now was created under the old model: no points were
