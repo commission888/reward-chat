@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
         { shop_id, line_user_id: lineUserId, display_name: displayName, picture_url: pictureUrl },
         { onConflict: "shop_id,line_user_id", ignoreDuplicates: false }
       )
-      .select("id, shop_id, display_name, picture_url, points_balance")
+      .select("id, shop_id, display_name, picture_url, phone, points_balance")
       .single();
     if (upsertError || !customer) {
       return jsonResponse({ error: upsertError?.message ?? "Failed to register customer" }, { status: 500 });

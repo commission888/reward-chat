@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +28,7 @@ export default function CustomerDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, display_name, phone, points_balance")
+        .select("id, display_name, picture_url, phone, points_balance")
         .eq("id", customerId)
         .single();
       if (error) throw error;
@@ -89,9 +90,19 @@ export default function CustomerDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">{customer.display_name ?? t("customerDetail.unnamed")}</h1>
-        <p className="text-muted-foreground">{customer.phone ?? t("customerDetail.noPhone")}</p>
+      <div className="flex items-center gap-4">
+        <Avatar className="size-14">
+          <AvatarImage src={customer.picture_url ?? undefined} alt="" />
+          <AvatarFallback className="text-lg">
+            {(customer.display_name ?? "?").slice(0, 1).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">
+            {customer.display_name ?? t("customerDetail.unnamed")}
+          </h1>
+          <p className="text-muted-foreground">{customer.phone ?? t("customerDetail.noPhone")}</p>
+        </div>
       </div>
 
       <Card>

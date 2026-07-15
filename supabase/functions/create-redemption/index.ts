@@ -35,8 +35,9 @@ Deno.serve(async (req: Request) => {
 
     const service = createServiceClient();
 
-    // Same current-card guard as apply-points: a valid signature alone doesn't
-    // prove the token is still the customer's active card.
+    // Same current-card guard every qr_token-authenticated function runs: a
+    // valid signature alone doesn't prove the token is still the customer's
+    // active card, since these tokens have no expiry.
     const { data: card } = await service
       .from("loyalty_cards")
       .select("qr_token, revoked_at")

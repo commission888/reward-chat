@@ -1,20 +1,32 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useCustomer } from "@/customer/CustomerProvider";
 import { useRewards } from "@/customer/useRewards";
+import { usePhone } from "@/customer/usePhone";
+import { useGrantClaim } from "@/customer/useGrantClaim";
 import { useI18n } from "@/i18n/LanguageProvider";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function CardPage() {
-  const { customer, qrToken, shop, loading, error, refresh } = useCustomer();
+  const { customer, qrToken, shop, loading, error, refresh, applyCustomer } = useCustomer();
   const rewardsState = useRewards(qrToken);
+  const { savePhone, saving: savingPhone } = usePhone(qrToken);
+  const grantClaim = useGrantClaim(qrToken, (balance) =>
+    applyCustomer((c) => (c ? { ...c, points_balance: balance } : c)),
+  );
   const { t } = useI18n();
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [showQr, setShowQr] = useState(false);
+  // null means "untouched" — the field then mirrors whatever the server has, so
+  // no effect is needed to seed it once the customer loads.
+  const [phoneDraft, setPhoneDraft] = useState<string | null>(null);
+  const [phoneMessage, setPhoneMessage] = useState<string | null>(null);
+  const phoneValue = phoneDraft ?? customer?.phone ?? "";
 
   if (loading) {
     return (
@@ -57,6 +69,18 @@ export default function CardPage() {
     rewardsState.reload();
   }
 
+  async function handleSavePhone(event: FormEvent) {
+    event.preventDefault();
+    setPhoneMessage(null);
+    try {
+      await savePhone(phoneValue);
+      setPhoneDraft(null); // fall back to the server's normalized value
+      setPhoneMessage(t("card.phoneSaved"));
+    } catch (err) {
+      setPhoneMessage(err instanceof Error ? err.message : t("card.phoneFailed"));
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex w-full max-w-md flex-col gap-8 px-5 py-8 sm:py-10">
@@ -81,6 +105,20 @@ export default function CardPage() {
             </Avatar>
             <p className="text-xl font-semibold text-foreground">{customer.display_name ?? t("card.member")}</p>
           </div>
+
+          {/* Scanning a points QR lands here — say so before anything else. */}
+          {grantClaim.result && (
+            <div className="rounded-2xl border-2 border-primary bg-primary/5 px-5 py-4 text-center">
+              <p className="text-lg font-semibold text-primary">
+                {t("card.grantCollected", { points: grantClaim.result.points })}
+              </p>
+            </div>
+          )}
+          {grantClaim.error && (
+            <div className="rounded-2xl border border-destructive/50 bg-destructive/5 px-5 py-4 text-center">
+              <p className="text-sm text-destructive">{grantClaim.error}</p>
+            </div>
+          )}
 
           <div className="rounded-3xl bg-primary px-6 py-7 text-primary-foreground shadow-sm">
             <p className="text-sm font-medium text-primary-foreground/80">{t("card.pointsLabel")}</p>
@@ -170,6 +208,32 @@ export default function CardPage() {
               <p className="text-center text-sm text-muted-foreground">{t("card.qrHint")}</p>
             </div>
           )}
+        </section>
+
+        {/* Phone — LINE never gives us one, so this is the only way it gets filled */}
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold text-foreground">{t("card.phoneTitle")}</h2>
+          <form
+            className="flex flex-col gap-3 rounded-2xl border border-border bg-card px-5 py-4"
+            onSubmit={handleSavePhone}
+          >
+            <p className="text-sm text-muted-foreground">{t("card.phoneHint")}</p>
+            <div className="flex gap-2">
+              <Input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                aria-label={t("card.phoneTitle")}
+                placeholder={t("card.phonePlaceholder")}
+                value={phoneValue}
+                onChange={(e) => setPhoneDraft(e.target.value)}
+              />
+              <Button type="submit" size="lg" className="shrink-0" disabled={savingPhone}>
+                {savingPhone ? t("card.phoneSaving") : t("card.phoneSave")}
+              </Button>
+            </div>
+            {phoneMessage && <p className="text-sm text-muted-foreground">{phoneMessage}</p>}
+          </form>
         </section>
 
         {/* History */}

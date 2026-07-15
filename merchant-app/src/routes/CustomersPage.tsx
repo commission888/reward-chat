@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -12,7 +13,7 @@ export default function CustomersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, display_name, phone, points_balance, created_at")
+        .select("id, display_name, picture_url, phone, points_balance, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -49,8 +50,14 @@ export default function CustomersPage() {
                   <TableCell className="font-medium">
                     <Link
                       to={`/customers/${customer.id}`}
-                      className="text-primary underline-offset-4 hover:underline"
+                      className="flex items-center gap-2 text-primary underline-offset-4 hover:underline"
                     >
+                      <Avatar className="size-8">
+                        <AvatarImage src={customer.picture_url ?? undefined} alt="" />
+                        <AvatarFallback>
+                          {(customer.display_name ?? "?").slice(0, 1).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                       {customer.display_name ?? t("customers.unnamed")}
                     </Link>
                   </TableCell>

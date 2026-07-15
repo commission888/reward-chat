@@ -1,13 +1,22 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { resolveLineIdentity } from "@/lib/liffIdentity";
 
-type Customer = {
+export type Customer = {
   id: string;
   shop_id: string;
   display_name: string | null;
   picture_url: string | null;
+  phone: string | null;
   points_balance: number;
 };
 
@@ -20,6 +29,11 @@ type CustomerState = {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  // Lets a mutation that already returns the fresh customer (e.g. saving a phone
+  // number, claiming a points QR) push it into context, instead of re-running the
+  // whole registration. Takes an updater too, so a caller holding only a new
+  // balance can patch the current customer without a stale copy of it.
+  applyCustomer: Dispatch<SetStateAction<Customer | null>>;
 };
 
 const CustomerContext = createContext<CustomerState | undefined>(undefined);
@@ -66,7 +80,9 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <CustomerContext.Provider value={{ customer, qrToken, shop, loading, error, refresh: register }}>
+    <CustomerContext.Provider
+      value={{ customer, qrToken, shop, loading, error, refresh: register, applyCustomer: setCustomer }}
+    >
       {children}
     </CustomerContext.Provider>
   );

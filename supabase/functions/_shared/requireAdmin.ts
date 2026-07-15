@@ -31,6 +31,26 @@ export async function requireAdmin(
   return { userId: user.id, shopId: profile.shop_id };
 }
 
+// Shared "caller works at some shop" gate — admin *or* staff. Used by functions
+// serving the counter (scanning a card), where staff are the primary users and
+// requireAdmin would lock them out. Returns the caller's own shop_id, which the
+// function must compare against whatever tenant the request targets.
+export async function requireShopMember(
+  caller: SupabaseClient,
+  message = "Only shop staff can perform this action"
+): Promise<{ userId: string; shopId: string; role: string }> {
+  const {
+    data: { user },
+  } = await caller.auth.getUser();
+  if (!user) throw new AuthzError("Not authenticated", 401);
+
+  const { data: profile, error } = await caller.from("profiles").select("role, shop_id").eq("id", user.id).single();
+  if (error || !profile || !profile.shop_id || (profile.role !== "admin" && profile.role !== "staff")) {
+    throw new AuthzError(message, 403);
+  }
+  return { userId: user.id, shopId: profile.shop_id, role: profile.role };
+}
+
 // Shared "caller must be the platform super_admin" gate, used by cross-tenant
 // admin functions (create a shop's admin, delete a shop). Unlike requireAdmin,
 // there's no shop_id to return — a super_admin isn't scoped to one shop, so the
