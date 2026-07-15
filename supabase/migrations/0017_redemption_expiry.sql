@@ -26,7 +26,16 @@ comment on column public.redemptions.expires_at is
 -- Same body as 0016 (aliases kept — `returns table (id, code, status, ...)` puts
 -- those names in scope, so an unqualified `where id = ...` is ambiguous and only
 -- fails at call time), plus the coupon's lifespan.
-create or replace function public.create_redemption(
+--
+-- Adding expires_at to the returned row changes the OUT row type, which
+-- `create or replace` refuses (42P13) — same wall 0015 hit on
+-- complete_redemption. Hence the drop, and hence the revoke/grant below is
+-- mandatory rather than decorative: a dropped function comes back with
+-- Postgres' default EXECUTE-to-PUBLIC, which here would let any anon key spend
+-- a customer's points.
+drop function if exists public.create_redemption(uuid, uuid, text);
+
+create function public.create_redemption(
   p_customer_id uuid,
   p_reward_id uuid,
   p_code text
