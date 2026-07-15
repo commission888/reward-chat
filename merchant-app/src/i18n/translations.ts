@@ -100,7 +100,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     "ai.keyLabel": "API key",
     "ai.keyPlaceholder": "sk-...",
     "ai.keyPlaceholderSet": "A key is saved — enter a new one to replace it",
-    "ai.keySource": "OpenAI dashboard → API keys → Create new secret key",
+    "ai.keySource":
+      "OpenAI dashboard → API keys → Create new secret key. Your account also needs credit — OpenAI gives out keys before you've paid them anything, and a key with no credit can't answer a single question.",
     "ai.statusSet": "Connected",
     "ai.statusMissing": "Not set up",
     "ai.warnMissing":
@@ -386,7 +387,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     "ai.keyLabel": "API key",
     "ai.keyPlaceholder": "sk-...",
     "ai.keyPlaceholderSet": "มี key บันทึกไว้แล้ว ใส่ตัวใหม่เพื่อเปลี่ยน",
-    "ai.keySource": "หน้า OpenAI dashboard → API keys → Create new secret key",
+    "ai.keySource":
+      "หน้า OpenAI dashboard → API keys → Create new secret key และบัญชีต้องมีเครดิตด้วย OpenAI แจก key ให้ตั้งแต่ยังไม่ได้จ่ายเงิน แต่ key ที่ไม่มีเครดิตจะตอบคำถามไม่ได้เลยสักข้อ",
     "ai.statusSet": "เชื่อมต่อแล้ว",
     "ai.statusMissing": "ยังไม่ได้ตั้งค่า",
     "ai.warnMissing":

@@ -61,19 +61,52 @@ export async function createChatReply(
   return json.choices[0].message.content as string;
 }
 
-// Cheapest possible round-trip that proves a key is real and has quota. Used at
-// save time so a shop finds out their key is wrong while they're looking at the
-// field, rather than via a chatbot that answers nothing days later.
+// Proves a key can actually do the job, at save time, so a shop finds out while
+// they're looking at the field rather than via a chatbot that answers nothing
+// for days.
+//
+// This deliberately embeds a real (tiny) string rather than calling a free
+// endpoint like GET /v1/models. Listing models only proves the key is authentic
+// — it passes for a brand-new key on an account with no credit attached, which
+// is the single most likely way a shop gets this wrong: OpenAI hands out keys
+// before you have paid them anything, and only the billed endpoints fail. So the
+// check has to exercise the same endpoint the chatbot depends on, or it would
+// hand out a green tick for a key that cannot answer a single question.
 export async function checkApiKey(apiKey: string): Promise<{ ok: true } | { ok: false; reason: string }> {
   let res: Response;
   try {
-    res = await fetch("https://api.openai.com/v1/models", {
-      headers: { Authorization: `Bearer ${apiKey}` },
+    res = await fetch("https://api.openai.com/v1/embeddings", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model: EMBEDDING_MODEL, input: "ok" }),
     });
   } catch (error) {
     return { ok: false, reason: error instanceof Error ? error.message : "Could not reach OpenAI" };
   }
+
   if (res.ok) return { ok: true };
-  if (res.status === 401) return { ok: false, reason: "OpenAI rejected this key" };
-  return { ok: false, reason: `OpenAI returned ${res.status}` };
+
+  // Surface OpenAI's own wording where we can — "you exceeded your current
+  // quota" tells a shop far more than any message we could invent.
+  let detail = "";
+  try {
+    const body = await res.json();
+    detail = body?.error?.message ?? "";
+  } catch {
+    // non-JSON error body; fall back to the status alone
+  }
+
+  if (res.status === 401) {
+    return { ok: false, reason: detail || "OpenAI rejected this key" };
+  }
+  if (res.status === 429) {
+    return {
+      ok: false,
+      reason: detail || "This key has no credit left. Add billing to your OpenAI account and try again.",
+    };
+  }
+  return { ok: false, reason: detail || `OpenAI returned ${res.status}` };
 }
