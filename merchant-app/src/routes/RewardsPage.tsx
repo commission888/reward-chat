@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
 import { useI18n } from "@/i18n/LanguageProvider";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type Reward = {
@@ -25,6 +26,44 @@ export default function RewardsPage() {
   const queryClient = useQueryClient();
   const shopId = profile?.shop_id ?? null;
   const [form, setForm] = useState({ name: "", description: "", points_cost: "" });
+  // null while unloaded; "" means "no minimum".
+  const [threshold, setThreshold] = useState<string | null>(null);
+
+  const { data: pointsConfig } = useQuery({
+    queryKey: ["shop-points-config", shopId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("shops").select("points_config").eq("id", shopId!).single();
+      if (error) throw error;
+      return (data.points_config ?? {}) as { redeem_threshold?: number };
+    },
+    enabled: Boolean(shopId),
+  });
+
+  const thresholdValue = threshold ?? (pointsConfig?.redeem_threshold?.toString() ?? "");
+
+  const saveThreshold = useMutation({
+    mutationFn: async () => {
+      const raw = thresholdValue.trim();
+      const parsed = raw === "" ? null : Number(raw);
+      if (parsed !== null && (!Number.isInteger(parsed) || parsed < 0)) {
+        throw new Error(t("rewards.errThreshold"));
+      }
+      // points_config also carries the slip-crediting rules, so this goes
+      // through an edge function that merges rather than overwrites it.
+      const { error } = await supabase.functions.invoke("update-shop-points-settings", {
+        body: { redeem_threshold: parsed },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(t("rewards.thresholdSaved"));
+      setThreshold(null);
+      queryClient.invalidateQueries({ queryKey: ["shop-points-config", shopId] });
+    },
+    onError: (error) => {
+      void getFunctionErrorMessage(error, t("rewards.errThreshold")).then((m) => toast.error(m));
+    },
+  });
 
   const { data: rewards, isLoading } = useQuery({
     queryKey: ["rewards", shopId],
@@ -102,6 +141,30 @@ export default function RewardsPage() {
         <h1 className="text-2xl font-semibold text-foreground">{t("rewards.title")}</h1>
         <p className="text-muted-foreground">{t("rewards.subtitle")}</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("rewards.thresholdTitle")}</CardTitle>
+          <CardDescription>{t("rewards.thresholdHint")}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="threshold">{t("rewards.thresholdLabel")}</Label>
+            <Input
+              id="threshold"
+              type="number"
+              min={0}
+              className="w-40"
+              placeholder={t("rewards.thresholdNone")}
+              value={thresholdValue}
+              onChange={(e) => setThreshold(e.target.value)}
+            />
+          </div>
+          <Button type="button" onClick={() => saveThreshold.mutate()} disabled={saveThreshold.isPending}>
+            {saveThreshold.isPending ? t("common.saving") : t("common.save")}
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

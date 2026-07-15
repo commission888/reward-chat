@@ -211,6 +211,13 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     "rewards.title": "Rewards",
     "rewards.subtitle": "Rewards customers can redeem with their points. Redemptions are approved by staff.",
+    "rewards.thresholdTitle": "Minimum to redeem",
+    "rewards.thresholdHint":
+      "Customers must reach this balance before they can redeem anything, on top of each reward's own cost. Leave blank for no minimum.",
+    "rewards.thresholdLabel": "Points needed",
+    "rewards.thresholdNone": "No minimum",
+    "rewards.thresholdSaved": "Minimum saved",
+    "rewards.errThreshold": "Enter a whole number of points, or leave blank",
     "rewards.addTitle": "Add a reward",
     "rewards.namePlaceholder": "e.g. Free coffee",
     "rewards.pointsCost": "Points cost",
@@ -467,6 +474,13 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     "rewards.title": "ของรางวัล",
     "rewards.subtitle": "ของรางวัลที่ลูกค้าแลกด้วยแต้มได้ การแลกต้องได้รับอนุมัติจากพนักงาน",
+    "rewards.thresholdTitle": "ขั้นต่ำในการแลก",
+    "rewards.thresholdHint":
+      "ลูกค้าต้องมีแต้มถึงจำนวนนี้ก่อนถึงจะแลกอะไรได้ นอกเหนือจากราคาแต้มของรางวัลแต่ละชิ้น เว้นว่างไว้ถ้าไม่ต้องการขั้นต่ำ",
+    "rewards.thresholdLabel": "จำนวนแต้ม",
+    "rewards.thresholdNone": "ไม่มีขั้นต่ำ",
+    "rewards.thresholdSaved": "บันทึกขั้นต่ำแล้ว",
+    "rewards.errThreshold": "กรอกจำนวนแต้มเป็นจำนวนเต็ม หรือเว้นว่างไว้",
     "rewards.addTitle": "เพิ่มของรางวัล",
     "rewards.namePlaceholder": "เช่น กาแฟฟรี",
     "rewards.pointsCost": "แต้มที่ใช้แลก",

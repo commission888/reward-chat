@@ -54,6 +54,50 @@ export async function replyMessage(accessToken: string, replyToken: string, text
   }
 }
 
+// Flex variants, kept separate from the text senders above rather than widening
+// those: the RAG chat path calls them on every message and has no reason to know
+// what a Flex payload is.
+//
+// `altText` is what shows in the chat list and on clients that can't render
+// Flex, so it must carry the actual news on its own — never "[card]".
+export async function replyFlexMessage(
+  accessToken: string,
+  replyToken: string,
+  altText: string,
+  contents: unknown
+): Promise<void> {
+  const res = await fetch("https://api.line.me/v2/bot/message/reply", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ replyToken, messages: [{ type: "flex", altText, contents }] }),
+  });
+  if (!res.ok) {
+    throw new Error(`LINE flex reply failed: ${res.status} ${await res.text()}`);
+  }
+}
+
+export async function pushFlexMessage(
+  accessToken: string,
+  to: string,
+  altText: string,
+  contents: unknown
+): Promise<void> {
+  const res = await fetch("https://api.line.me/v2/bot/message/push", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ to, messages: [{ type: "flex", altText, contents }] }),
+  });
+  if (!res.ok) {
+    throw new Error(`LINE flex push failed: ${res.status} ${await res.text()}`);
+  }
+}
+
 export async function pushMessage(accessToken: string, to: string, text: string): Promise<void> {
   const res = await fetch("https://api.line.me/v2/bot/message/push", {
     method: "POST",

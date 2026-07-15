@@ -69,6 +69,17 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "Insufficient points" }, { status: 400 });
     }
 
+    // The shop's own floor on redeeming at all, on top of the reward's price.
+    // Soft like the check above — staff approval is still the authority.
+    const { data: shop } = await service.from("shops").select("points_config").eq("id", shopId).single();
+    const threshold = (shop?.points_config as { redeem_threshold?: number } | null)?.redeem_threshold;
+    if (typeof threshold === "number" && customer.points_balance < threshold) {
+      return jsonResponse(
+        { error: `You need at least ${threshold} points before redeeming` },
+        { status: 400 }
+      );
+    }
+
     const { data: redemption, error } = await service
       .from("redemptions")
       .insert({

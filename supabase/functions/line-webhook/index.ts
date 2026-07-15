@@ -4,11 +4,14 @@ import {
   verifyLineSignature,
   replyMessage,
   pushMessage,
+  replyFlexMessage,
+  pushFlexMessage,
   getMessageContent,
   getUserProfile,
 } from "../_shared/line.ts";
 import { createEmbedding, createChatReply } from "../_shared/openai.ts";
 import { verifySlipImage, describeSlip2GoCode, type Slip2GoCheckReceiver } from "../_shared/slip2go.ts";
+import { buildSlipCard, slipCardAltText } from "./slipCard.ts";
 
 // Cosine distance above this is treated as "no relevant document" — see the
 // project plan's strict-grounding decision (§6): the bot refuses to answer
@@ -35,7 +38,8 @@ type ShopRow = {
   id: string;
   line_channel_secret: string;
   line_channel_access_token: string;
-  points_config: { points_per_baht?: number; points_per_slip?: number } | null;
+  liff_id: string | null;
+  points_config: { points_per_baht?: number; points_per_slip?: number; redeem_threshold?: number } | null;
   slip2go_api_secret: string | null;
   slip_receiver_account_type: string | null;
   slip_receiver_account_name_th: string | null;
@@ -55,7 +59,7 @@ Deno.serve(async (req: Request) => {
     const { data: shop, error: shopError } = await service
       .from("shops")
       .select(
-        "id, line_channel_secret, line_channel_access_token, points_config, " +
+        "id, line_channel_secret, line_channel_access_token, liff_id, points_config, " +
           "slip2go_api_secret, slip_receiver_account_type, slip_receiver_account_name_th, " +
           "slip_receiver_account_name_en, slip_receiver_account_number"
       )
@@ -205,6 +209,23 @@ async function handleSlipImage(params: {
     }
   }
 
+  // Points are credited before we get here, so a card that fails to render must
+  // never mean the customer hears nothing at all. Every failure path degrades to
+  // the plain-text version of the same news.
+  async function replyCard(altText: string, contents: unknown) {
+    try {
+      await replyFlexMessage(accessToken, replyToken, altText, contents);
+      return;
+    } catch {
+      // Reply token spent, or LINE rejected the payload — try pushing the card.
+    }
+    try {
+      await pushFlexMessage(accessToken, userId, altText, contents);
+    } catch {
+      await reply(altText);
+    }
+  }
+
   try {
     // Ensure a customer row exists for this LINE user even if they never
     // went through the LIFF registration flow — the webhook's own signature
@@ -309,9 +330,14 @@ async function handleSlipImage(params: {
       if (typeof data === "number") newBalance = data;
     }
 
-    await reply(
-      `ตรวจสอบสลิปสำเร็จ ยอดโอน ${amount} บาท ได้รับ ${pointsToAward} แต้ม\nยอดสะสมปัจจุบัน ${newBalance} แต้ม`
-    );
+    const cardInput = {
+      amount,
+      pointsAwarded: pointsToAward,
+      balance: newBalance,
+      redeemThreshold: typeof config.redeem_threshold === "number" ? config.redeem_threshold : null,
+      liffId: shop.liff_id,
+    };
+    await replyCard(slipCardAltText(cardInput), buildSlipCard(cardInput));
   } catch (error) {
     console.error("line-webhook handleSlipImage failed:", error);
     try {

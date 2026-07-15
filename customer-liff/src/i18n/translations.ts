@@ -37,6 +37,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     "card.phoneFailed": "Could not save your phone number",
     "card.grantCollected": "+{points} points collected!",
     "card.grantFailed": "Could not collect these points",
+    "card.thresholdShort": "{points} more points before you can redeem",
 
     "lang.th": "ไทย",
     "lang.en": "EN",
@@ -75,6 +76,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     "card.phoneFailed": "บันทึกเบอร์โทรไม่สำเร็จ",
     "card.grantCollected": "ได้รับ +{points} แต้มแล้ว!",
     "card.grantFailed": "รับแต้มไม่สำเร็จ",
+    "card.thresholdShort": "อีก {points} แต้ม ถึงจะแลกของรางวัลได้",
 
     "lang.th": "ไทย",
     "lang.en": "EN",

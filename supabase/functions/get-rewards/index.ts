@@ -49,7 +49,16 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: redemptionsError.message }, { status: 500 });
     }
 
-    return jsonResponse({ rewards: rewards ?? [], redemptions: redemptions ?? [] });
+    // The shop's minimum balance before anything can be redeemed. The card needs
+    // it to show progress and to disable the redeem buttons; null when unset.
+    const { data: shop } = await service.from("shops").select("points_config").eq("id", shopId).single();
+    const threshold = (shop?.points_config as { redeem_threshold?: number } | null)?.redeem_threshold;
+
+    return jsonResponse({
+      rewards: rewards ?? [],
+      redemptions: redemptions ?? [],
+      redeem_threshold: typeof threshold === "number" ? threshold : null,
+    });
   } catch (error) {
     return jsonResponse({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
   }

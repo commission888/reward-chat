@@ -49,6 +49,8 @@ export default function CardPage() {
   }
 
   const initials = (customer.display_name ?? "?").slice(0, 1).toUpperCase();
+  const belowThreshold =
+    rewardsState.redeemThreshold !== null && customer.points_balance < rewardsState.redeemThreshold;
   const pendingCoupons = rewardsState.redemptions.filter((r) => r.status === "pending");
   const pastCoupons = rewardsState.redemptions.filter((r) => r.status !== "pending");
 
@@ -151,6 +153,13 @@ export default function CardPage() {
         {/* Rewards catalog */}
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-foreground">{t("card.rewards")}</h2>
+          {/* Progress toward the shop's minimum — deliberately not phrased as
+              "you can redeem X", since each reward has its own cost on top. */}
+          {belowThreshold && (
+            <p className="rounded-2xl bg-secondary px-5 py-3 text-center text-sm text-muted-foreground">
+              {t("card.thresholdShort", { points: rewardsState.redeemThreshold! - customer.points_balance })}
+            </p>
+          )}
           {actionError && <p className="text-sm text-destructive">{actionError}</p>}
           {rewardsState.loading && <Skeleton className="h-24 w-full rounded-2xl" />}
           {!rewardsState.loading && rewardsState.rewards.length === 0 && (
@@ -159,7 +168,7 @@ export default function CardPage() {
             </p>
           )}
           {rewardsState.rewards.map((reward) => {
-            const affordable = customer.points_balance >= reward.points_cost;
+            const affordable = customer.points_balance >= reward.points_cost && !belowThreshold;
             return (
               <div
                 key={reward.id}

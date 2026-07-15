@@ -27,6 +27,9 @@ export function useRewards(qrToken: string | null) {
   const { t } = useI18n();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [redemptions, setRedemptions] = useState<Redemption[]>([]);
+  // The shop's floor on redeeming at all, separate from each reward's own cost.
+  // null = the shop hasn't set one.
+  const [redeemThreshold, setRedeemThreshold] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,10 +41,12 @@ export function useRewards(qrToken: string | null) {
       const { data, error: fnError } = await supabase.functions.invoke<{
         rewards: Reward[];
         redemptions: Redemption[];
+        redeem_threshold: number | null;
       }>("get-rewards", { body: { qr_token: qrToken } });
       if (fnError) throw fnError;
       setRewards(data?.rewards ?? []);
       setRedemptions(data?.redemptions ?? []);
+      setRedeemThreshold(data?.redeem_threshold ?? null);
     } catch (err) {
       setError(await getFunctionErrorMessage(err, t("card.loadFailed")));
     } finally {
@@ -65,5 +70,5 @@ export function useRewards(qrToken: string | null) {
     [qrToken, reload, t]
   );
 
-  return { rewards, redemptions, loading, error, reload, redeem };
+  return { rewards, redemptions, redeemThreshold, loading, error, reload, redeem };
 }
