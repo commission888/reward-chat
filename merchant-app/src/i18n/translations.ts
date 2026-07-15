@@ -76,6 +76,10 @@ export const translations: Record<Lang, Record<string, string>> = {
     "customerDetail.history": "History",
     "customerDetail.change": "Change",
     "customerDetail.balanceAfter": "Balance after",
+    "customerDetail.by": "By",
+    "customerDetail.bySystem": "System",
+    "customerDetail.notFound": "Customer not found",
+    "customerDetail.noHistory": "No point activity yet",
 
     "kb.title": "Knowledge base",
     "kb.subtitle": "Upload .docx or .xlsx files. Your AI chatbot answers customer questions using this content first.",
@@ -328,6 +332,10 @@ export const translations: Record<Lang, Record<string, string>> = {
     "customerDetail.history": "ประวัติ",
     "customerDetail.change": "การเปลี่ยนแปลง",
     "customerDetail.balanceAfter": "แต้มคงเหลือ",
+    "customerDetail.by": "โดย",
+    "customerDetail.bySystem": "ระบบ",
+    "customerDetail.notFound": "ไม่พบลูกค้ารายนี้",
+    "customerDetail.noHistory": "ยังไม่มีรายการแต้ม",
 
     "kb.title": "ฐานความรู้",
     "kb.subtitle": "อัปโหลดไฟล์ .docx หรือ .xlsx แชทบอท AI จะใช้เนื้อหานี้ตอบคำถามลูกค้าก่อน",

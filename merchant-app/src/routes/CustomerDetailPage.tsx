@@ -18,7 +18,11 @@ export default function CustomerDetailPage() {
   const [delta, setDelta] = useState("");
   const [reason, setReason] = useState("manual_adjustment");
 
-  const { data: customer } = useQuery({
+  const {
+    data: customer,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["customer", customerId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -35,9 +39,16 @@ export default function CustomerDetailPage() {
   const { data: history } = useQuery({
     queryKey: ["customer", customerId, "history"],
     queryFn: async () => {
+      // Who made each change is already in the ledger: apply_points stamps
+      // staff_user_id with auth.uid(). Embedding the profile turns that id into
+      // a name. staff_user_id is null for slip auto-credits (apply_points_system
+      // runs as service_role with no auth.uid()) and for staff since deleted,
+      // both of which render as "system".
       const { data, error } = await supabase
         .from("points_transactions")
-        .select("id, delta, reason, balance_after, created_at")
+        .select(
+          "id, delta, reason, balance_after, created_at, staff:profiles!points_transactions_staff_user_id_fkey(full_name, email)",
+        )
         .eq("customer_id", customerId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -71,7 +82,10 @@ export default function CustomerDetailPage() {
     adjustPoints.mutate();
   }
 
-  if (!customer) return null;
+  // Without these, a slow load or a bad id renders a blank page, which reads as
+  // "the link is broken" rather than "still loading" / "no such customer".
+  if (isLoading) return <p className="text-muted-foreground">{t("common.loading")}</p>;
+  if (isError || !customer) return <p className="text-muted-foreground">{t("customerDetail.notFound")}</p>;
 
   return (
     <div className="flex flex-col gap-6">
@@ -119,10 +133,18 @@ export default function CustomerDetailPage() {
                 <TableHead>{t("common.date")}</TableHead>
                 <TableHead>{t("customerDetail.change")}</TableHead>
                 <TableHead>{t("common.reason")}</TableHead>
+                <TableHead>{t("customerDetail.by")}</TableHead>
                 <TableHead className="text-right">{t("customerDetail.balanceAfter")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
+              {history?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-muted-foreground">
+                    {t("customerDetail.noHistory")}
+                  </TableCell>
+                </TableRow>
+              )}
               {history?.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell className="text-muted-foreground">
@@ -132,6 +154,9 @@ export default function CustomerDetailPage() {
                     {entry.delta >= 0 ? `+${entry.delta}` : entry.delta}
                   </TableCell>
                   <TableCell>{entry.reason}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {entry.staff?.full_name ?? entry.staff?.email ?? t("customerDetail.bySystem")}
+                  </TableCell>
                   <TableCell className="text-right">{entry.balance_after}</TableCell>
                 </TableRow>
               ))}

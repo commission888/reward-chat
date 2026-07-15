@@ -47,7 +47,10 @@ export default function CustomersPage() {
               {customers?.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell className="font-medium">
-                    <Link to={`/customers/${customer.id}`} className="hover:underline">
+                    <Link
+                      to={`/customers/${customer.id}`}
+                      className="text-primary underline-offset-4 hover:underline"
+                    >
                       {customer.display_name ?? t("customers.unnamed")}
                     </Link>
                   </TableCell>
