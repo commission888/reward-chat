@@ -15,6 +15,7 @@ type Redemption = {
   code: string;
   status: string;
   created_at: string;
+  expires_at: string;
   customers: { display_name: string | null } | null;
 };
 
@@ -22,6 +23,14 @@ const STATUS_VARIANT: Record<string, "default" | "secondary"> = {
   completed: "default",
   cancelled: "secondary",
 };
+
+// Expiry is computed from the clock, not stored as a status: there is no job
+// flipping rows, so a coupon is dead the moment its expires_at passes. The
+// database enforces the same thing in complete_redemption; this only decides
+// what staff see.
+function isExpired(redemption: Redemption): boolean {
+  return new Date(redemption.expires_at).getTime() <= Date.now();
+}
 
 export default function RedemptionsPage() {
   const { profile } = useAuth();
@@ -34,7 +43,7 @@ export default function RedemptionsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("redemptions")
-        .select("id, reward_name, points_cost, code, status, created_at, customers(display_name)")
+        .select("id, reward_name, points_cost, code, status, created_at, expires_at, customers(display_name)")
         .eq("shop_id", shopId!)
         .eq("status", "pending")
         .order("created_at", { ascending: true });
@@ -49,7 +58,7 @@ export default function RedemptionsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("redemptions")
-        .select("id, reward_name, points_cost, code, status, created_at, customers(display_name)")
+        .select("id, reward_name, points_cost, code, status, created_at, expires_at, customers(display_name)")
         .eq("shop_id", shopId!)
         .neq("status", "pending")
         .order("created_at", { ascending: false })
@@ -76,19 +85,10 @@ export default function RedemptionsPage() {
     onError: (error) => toast.error(error instanceof Error ? error.message : t("redemptions.errApprove")),
   });
 
-  const reject = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc("cancel_redemption", { p_redemption_id: id });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success(t("redemptions.rejected"));
-      invalidate();
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : t("redemptions.errReject")),
-  });
-
-  const busy = approve.isPending || reject.isPending;
+  // There is no reject. Redeeming spends the points for good, so a reject would
+  // either have to hand them back — which is exactly what the shop asked not to
+  // happen — or take them for nothing. An unwanted coupon simply expires.
+  const busy = approve.isPending;
 
   return (
     <div className="flex flex-col gap-6">
@@ -110,40 +110,47 @@ export default function RedemptionsPage() {
                 <TableHead>{t("redemptions.customer")}</TableHead>
                 <TableHead>{t("redemptions.reward")}</TableHead>
                 <TableHead>{t("redemptions.pointsCol")}</TableHead>
+                <TableHead>{t("redemptions.expires")}</TableHead>
                 <TableHead className="text-right">{t("common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pending.isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5}>{t("common.loading")}</TableCell>
+                  <TableCell colSpan={6}>{t("common.loading")}</TableCell>
                 </TableRow>
               )}
               {!pending.isLoading && (pending.data?.length ?? 0) === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">
+                  <TableCell colSpan={6} className="text-muted-foreground">
                     {t("redemptions.noPending")}
                   </TableCell>
                 </TableRow>
               )}
-              {pending.data?.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-mono font-medium">{r.code}</TableCell>
-                  <TableCell>{r.customers?.display_name ?? "—"}</TableCell>
-                  <TableCell>{r.reward_name}</TableCell>
-                  <TableCell>{r.points_cost}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" onClick={() => approve.mutate(r.id)} disabled={busy}>
+              {pending.data?.map((r) => {
+                const expired = isExpired(r);
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-mono font-medium">{r.code}</TableCell>
+                    <TableCell>{r.customers?.display_name ?? "—"}</TableCell>
+                    <TableCell>{r.reward_name}</TableCell>
+                    <TableCell>{r.points_cost}</TableCell>
+                    <TableCell className={expired ? "text-destructive" : "text-muted-foreground"}>
+                      {expired
+                        ? t("redemptions.expiredLabel")
+                        : new Date(r.expires_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {/* Disabled rather than hidden: an expired coupon a customer
+                          is standing there holding needs an explanation, not a
+                          missing button. complete_redemption refuses it anyway. */}
+                      <Button size="sm" onClick={() => approve.mutate(r.id)} disabled={busy || expired}>
                         {t("redemptions.approve")}
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => reject.mutate(r.id)} disabled={busy}>
-                        {t("redemptions.reject")}
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>

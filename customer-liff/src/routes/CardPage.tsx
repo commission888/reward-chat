@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useCustomer } from "@/customer/CustomerProvider";
-import { useRewards } from "@/customer/useRewards";
+import { useRewards, isExpired } from "@/customer/useRewards";
 import { usePhone } from "@/customer/usePhone";
 import { useGrantClaim } from "@/customer/useGrantClaim";
 import { useI18n } from "@/i18n/LanguageProvider";
@@ -51,8 +51,12 @@ export default function CardPage() {
   const initials = (customer.display_name ?? "?").slice(0, 1).toUpperCase();
   const belowThreshold =
     rewardsState.redeemThreshold !== null && customer.points_balance < rewardsState.redeemThreshold;
-  const pendingCoupons = rewardsState.redemptions.filter((r) => r.status === "pending");
-  const pastCoupons = rewardsState.redemptions.filter((r) => r.status !== "pending");
+  // An expired coupon is still "pending" in the database — nothing sweeps them —
+  // so it's filtered out of the usable list here and shown in history instead.
+  // Presenting a dead coupon as collectable would send someone to the counter
+  // for a reward staff can't honour.
+  const pendingCoupons = rewardsState.redemptions.filter((r) => r.status === "pending" && !isExpired(r));
+  const pastCoupons = rewardsState.redemptions.filter((r) => r.status !== "pending" || isExpired(r));
 
   async function handleRedeem(rewardId: string) {
     setActionError(null);
@@ -144,6 +148,11 @@ export default function CardPage() {
                 <p className="font-mono text-4xl font-bold tracking-[0.2em] text-primary">{c.code}</p>
                 <p className="text-sm text-muted-foreground">
                   {t("card.couponHint", { points: c.points_cost })}
+                </p>
+                {/* The points are already spent and never come back, so the
+                    deadline is the one thing that still matters here. */}
+                <p className="text-sm font-medium text-destructive">
+                  {t("card.couponExpires", { date: new Date(c.expires_at).toLocaleDateString() })}
                 </p>
               </div>
             ))}
@@ -256,7 +265,11 @@ export default function CardPage() {
               >
                 <span className="text-foreground">{c.reward_name}</span>
                 <span className={c.status === "completed" ? "text-muted-foreground" : "text-destructive"}>
-                  {c.status === "completed" ? t("card.used") : t("card.rejected")}
+                  {c.status === "completed"
+                    ? t("card.used")
+                    : c.status === "pending"
+                      ? t("card.expired")
+                      : t("card.rejected")}
                 </span>
               </div>
             ))}

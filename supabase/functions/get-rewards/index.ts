@@ -41,7 +41,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: redemptions, error: redemptionsError } = await service
       .from("redemptions")
-      .select("id, reward_name, points_cost, code, status, created_at")
+      .select("id, reward_name, points_cost, code, status, created_at, expires_at")
       .eq("customer_id", customerId)
       .order("created_at", { ascending: false })
       .limit(20);

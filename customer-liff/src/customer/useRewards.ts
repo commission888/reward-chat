@@ -17,7 +17,15 @@ export type Redemption = {
   code: string;
   status: string;
   created_at: string;
+  expires_at: string;
 };
+
+// Expiry is computed from the clock — no job flips these rows, so a coupon is
+// simply dead once its expires_at passes. complete_redemption enforces the same
+// rule server-side; this only decides what the customer is shown.
+export function isExpired(redemption: Redemption): boolean {
+  return new Date(redemption.expires_at).getTime() <= Date.now();
+}
 
 // Rewards catalog + the customer's own coupons, both fetched from the
 // get-rewards edge function (customers have no table access; the signed loyalty

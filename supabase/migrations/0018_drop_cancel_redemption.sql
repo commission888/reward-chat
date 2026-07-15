@@ -1,0 +1,13 @@
+-- Removes the refund path. Redeeming is final: an unwanted coupon expires
+-- (0017) rather than being handed back, so cancel_redemption has no caller and
+-- no meaning. Leaving a function around that credits points to a balance is not
+-- harmless — it is a live way to mint them if anything ever calls it again.
+--
+-- Separate from 0017 on purpose. Adding things goes callee-first (create the
+-- RPC, then ship the UI that calls it); *removing* them has to go caller-first,
+-- or the frontend still live on Vercel calls a function that no longer exists.
+-- This must not be applied until a build without the Reject button is deployed.
+--
+-- 'cancelled' stays in the status check constraint: rows retired by 0015 still
+-- carry it, and history doesn't get to be rewritten.
+drop function if exists public.cancel_redemption(uuid);
