@@ -23,7 +23,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // The signed loyalty token is the customer's identity proof — never trust a
-    // client-supplied customer_id. The shop is taken from the token too.
+    // client-supplied customer_id.
     let payload;
     try {
       payload = await verifyQrToken(qr_token, QR_SIGNING_SECRET);
@@ -31,7 +31,6 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "Invalid card token" }, { status: 401 });
     }
     const customerId = payload.cid;
-    const shopId = payload.sid;
 
     const service = createServiceClient();
 
@@ -47,54 +46,23 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "Card not active" }, { status: 401 });
     }
 
-    const { data: reward } = await service
-      .from("rewards")
-      .select("id, name, points_cost, active, shop_id")
-      .eq("id", reward_id)
-      .maybeSingle();
-    if (!reward || reward.shop_id !== shopId || !reward.active) {
-      return jsonResponse({ error: "Reward not available" }, { status: 404 });
+    // Everything else — reward validity, the shop's redeem threshold, the
+    // balance check, the deduction and the coupon row — happens inside the RPC
+    // under a row lock. Redeeming now spends the points, so those checks are
+    // authoritative rather than advisory, and splitting them across this
+    // function and the database would reopen the double-spend the lock closes.
+    const { data, error } = await service.rpc("create_redemption", {
+      p_customer_id: customerId,
+      p_reward_id: reward_id,
+      p_code: generateCode(),
+    });
+    if (error) {
+      return jsonResponse({ error: error.message }, { status: 400 });
     }
 
-    // Soft check only — this is not a reservation. The authoritative balance
-    // check happens in complete_redemption when staff approve, so two coupons
-    // that together exceed the balance are allowed here and the second simply
-    // fails at approval.
-    const { data: customer } = await service
-      .from("customers")
-      .select("points_balance")
-      .eq("id", customerId)
-      .single();
-    if (!customer || customer.points_balance < reward.points_cost) {
-      return jsonResponse({ error: "Insufficient points" }, { status: 400 });
-    }
-
-    // The shop's own floor on redeeming at all, on top of the reward's price.
-    // Soft like the check above — staff approval is still the authority.
-    const { data: shop } = await service.from("shops").select("points_config").eq("id", shopId).single();
-    const threshold = (shop?.points_config as { redeem_threshold?: number } | null)?.redeem_threshold;
-    if (typeof threshold === "number" && customer.points_balance < threshold) {
-      return jsonResponse(
-        { error: `You need at least ${threshold} points before redeeming` },
-        { status: 400 }
-      );
-    }
-
-    const { data: redemption, error } = await service
-      .from("redemptions")
-      .insert({
-        shop_id: shopId,
-        customer_id: customerId,
-        reward_id: reward.id,
-        reward_name: reward.name,
-        points_cost: reward.points_cost,
-        code: generateCode(),
-        status: "pending",
-      })
-      .select("id, reward_name, points_cost, code, status, created_at")
-      .single();
-    if (error || !redemption) {
-      return jsonResponse({ error: error?.message ?? "Failed to create redemption" }, { status: 500 });
+    const redemption = Array.isArray(data) ? data[0] : data;
+    if (!redemption) {
+      return jsonResponse({ error: "Failed to create redemption" }, { status: 500 });
     }
 
     return jsonResponse({ redemption });
