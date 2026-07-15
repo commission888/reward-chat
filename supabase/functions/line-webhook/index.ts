@@ -13,16 +13,28 @@ import { createEmbedding, createChatReply } from "../_shared/openai.ts";
 import { verifySlipImage, describeSlip2GoCode, type Slip2GoCheckReceiver } from "../_shared/slip2go.ts";
 import { buildSlipCard, slipCardAltText } from "./slipCard.ts";
 
-// Cosine distance above this means "no document is even on this topic".
+// There is deliberately no distance threshold here any more, and it should not
+// come back. Measured against this shop's real document and a real question:
 //
-// It is NOT what keeps answers grounded — the system prompt's "use ONLY the
-// context" is, and the model declines when the context doesn't cover the
-// question. So this gate only decides whether it's worth paying for a completion
-// at all, and its only real failure mode is being too tight: at 0.5 a shop whose
-// document literally said "เวลาทำการ: 09.00 - 17.00 น." still got the canned
-// "I don't have that" for "ร้านเปิดปิดกี่โมง". Erring generous costs a few
-// tokens; erring strict makes the bot useless.
-const MATCH_DISTANCE_THRESHOLD = 0.65;
+//   "เปิดกี่โมง" vs the chunk holding the answer .......... 0.787
+//   "เปิดกี่โมง" vs "วิธีเปลี่ยนยางรถยนต์" (unrelated) ....... 0.773
+//
+// The answer scored *worse* than a car-tyre article. Cosine distance on short
+// Thai queries carries about 0.007 of signal between relevant and irrelevant —
+// no cut-off can separate them, which is why 0.5 and then 0.65 both rejected
+// everything and the bot answered "I don't have that" to a question its own
+// document answered in plain text.
+//
+// The model was always the real relevance judge, and it's a good one. Handed the
+// same chunks, gpt-4o-mini answered "เปิดกี่โมง" and "มีที่จอดรถไหม" correctly and
+// declined "ขายไอโฟนราคาเท่าไหร่" on its own — every one of which the filter had
+// been throwing away. Grounding comes from the system prompt's "use ONLY the
+// context", not from arithmetic on vectors.
+//
+// What still limits blast radius: match_count caps how much context is sent, and
+// the canned reply below covers the only case retrieval can be sure about — a
+// shop with no documents at all.
+const MATCH_COUNT = 5;
 
 // LINE sends no locale on a message event, so the customer's own text is the
 // only signal there is. Thai has its own Unicode block, so a single Thai
@@ -186,26 +198,23 @@ async function handleMessage(params: {
       const { data: matches, error: matchError } = await service.rpc("match_document_chunks", {
         p_shop_id: shopId,
         p_query_embedding: queryEmbedding,
-        p_match_count: 5,
+        p_match_count: MATCH_COUNT,
       });
       if (matchError) throw new Error(matchError.message);
 
+      // Still nearest-first from the RPC, so this is "the most relevant few" —
+      // just without pretending a cut-off can decide relevance.
       const scored = (matches ?? []) as { distance: number; content: string }[];
-      const relevant = scored.filter((m) => m.distance <= MATCH_DISTANCE_THRESHOLD);
 
-      // The one number that explains a bot answering "I don't know" while the
-      // answer sits in the shop's document. Without it the only way to tell a
-      // too-tight threshold from a genuinely off-topic question is to guess.
       const best = scored.length > 0 ? Math.min(...scored.map((m) => m.distance)) : null;
-      console.log(
-        `line-webhook rag: shop=${shopId} chunks=${scored.length} best_distance=${best ?? "n/a"} ` +
-          `threshold=${MATCH_DISTANCE_THRESHOLD} passed=${relevant.length}`
-      );
+      console.log(`line-webhook rag: shop=${shopId} chunks=${scored.length} best_distance=${best ?? "n/a"}`);
 
-      if (relevant.length === 0) {
+      if (scored.length === 0) {
+        // A shop with no documents at all — the one case retrieval can be sure
+        // about, and the only one left for the canned reply.
         replyText = noMatchReply(text);
       } else {
-        const context = relevant.map((m: { content: string }) => m.content).join("\n---\n");
+        const context = scored.map((m) => m.content).join("\n---\n");
         // The language line is a *form* instruction, so it doesn't loosen the
         // strict-grounding rule next to it — and it makes the model's own
         // "I don't have that" come out in the customer's language too, which the

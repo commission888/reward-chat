@@ -130,7 +130,13 @@ Two consequences worth knowing before touching this:
 
 ## RAG knowledge base — parsing happens client-side, not in the edge function
 
-`.docx`/`.xlsx` files are parsed to plain text **in the browser** (`merchant-app/src/lib/extractText.ts`, using `mammoth` and `exceljs`) before being uploaded — `ingest-file` receives already-extracted text, not the raw file. This is deliberate: those libraries' zip/inflate internals are unverified in Supabase's constrained Deno edge runtime. Chat replies are strictly grounded — `line-webhook` refuses to answer (canned reply) rather than fall back to the model's general knowledge when no document chunk clears the cosine-distance threshold, to avoid hallucinated shop-specific answers.
+`.docx`/`.xlsx` files are parsed to plain text **in the browser** (`merchant-app/src/lib/extractText.ts`, using `mammoth` and `exceljs`) before being uploaded — `ingest-file` receives already-extracted text, not the raw file. This is deliberate: those libraries' zip/inflate internals are unverified in Supabase's constrained Deno edge runtime.
+
+**Grounding comes from the system prompt, not from a distance threshold — do not add one back.** `line-webhook` takes the nearest `MATCH_COUNT` chunks and hands all of them to the model; "use ONLY the context, say you don't have it otherwise" is what stops hallucinated shop-specific answers, and the model is good at it. The canned reply now fires only when a shop has **zero** chunks.
+
+There used to be a `MATCH_DISTANCE_THRESHOLD` and it made the bot useless. Measured against a real shop document and a real question: `"เปิดกี่โมง"` scored **0.787** against the chunk containing `"เวลาทำการ: 09.00 - 17.00 น."` and **0.773** against an article about changing car tyres — the answer ranked *worse than an unrelated document*. Cosine distance on short Thai queries carries almost no signal (~0.007 between relevant and irrelevant), so no cut-off separates them; 0.5 and then 0.65 both rejected everything. Handed those same chunks, the model answered `"เปิดกี่โมง"` and `"มีที่จอดรถไหม"` correctly and declined `"ขายไอโฟนราคาเท่าไหร่"` on its own — all three of which the filter had been throwing away. The embeddings are fine (a natural paraphrase scored 0.543); the *mechanism* couldn't use them.
+
+Two known-but-unfixed issues in `ingest-file`'s `chunkText`, measured as **not** the cause of the above (a focused chunk scored 0.766 vs the blob's 0.787 — no meaningful difference): it does `words.join(" ")`, which flattens every newline out of the stored chunk, and it splits on `/\s+/`, which is meaningless for Thai — 663 characters of Thai count as "51 words", so a whole document becomes one chunk. Harmless at current sizes; a real problem for any large Thai document.
 
 ## Payment-slip verification (Slip2Go)
 
