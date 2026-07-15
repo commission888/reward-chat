@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Copy, ExternalLink } from "lucide-react";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
@@ -15,6 +16,54 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+const LINE_CONSOLE_URL = "https://developers.line.biz/console/";
+
+// The customer LIFF app is one platform-wide deployment serving every shop (the
+// shop is picked out by the ?shop_id= param), so its host is a constant here
+// rather than per-shop config. The literal default matters: .env.production is
+// gitignored, so without it a Vercel build with no VITE_LIFF_APP_URL set would
+// quietly render "undefined" into the endpoint URL admins paste into LINE.
+const LIFF_APP_BASE_URL: string =
+  import.meta.env.VITE_LIFF_APP_URL ?? "https://rewardchat-liff.vercel.app";
+
+// Module scope can't call useI18n(), so steps carry key strings that render resolves.
+const SETUP_STEPS = [
+  { titleKey: "line.guide.step1.title", bodyKey: "line.guide.step1.body" },
+  { titleKey: "line.guide.step2.title", bodyKey: "line.guide.step2.body" },
+  { titleKey: "line.guide.step3.title", bodyKey: "line.guide.step3.body" },
+  { titleKey: "line.guide.step4.title", bodyKey: "line.guide.step4.body" },
+  { titleKey: "line.guide.step5.title", bodyKey: "line.guide.step5.body" },
+  { titleKey: "line.guide.step6.title", bodyKey: "line.guide.step6.body" },
+  { titleKey: "line.guide.step7.title", bodyKey: "line.guide.step7.body" },
+  { titleKey: "line.guide.step8.title", bodyKey: "line.guide.step8.body" },
+  { titleKey: "line.guide.step9.title", bodyKey: "line.guide.step9.body" },
+] as const;
+
+function CopyableUrl({ value }: { value: string }) {
+  const { t } = useI18n();
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(t("common.copied"));
+    } catch {
+      // Clipboard access needs a secure context and can be blocked outright, so
+      // failure is expected enough to tell the admin to copy by hand instead.
+      toast.error(t("common.copyFailed"));
+    }
+  }
+
+  return (
+    <div className="flex items-start gap-2">
+      <code className="block flex-1 break-all rounded-md bg-muted p-3 text-sm">{value}</code>
+      <Button type="button" variant="outline" size="sm" onClick={copy} aria-label={t("common.copy")}>
+        <Copy />
+        {t("common.copy")}
+      </Button>
+    </div>
+  );
+}
 
 export default function LineSettingsPage() {
   const { profile } = useAuth();
@@ -86,6 +135,13 @@ export default function LineSettingsPage() {
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/line-webhook/${profile.shop_id}`
     : "";
 
+  // Built from the *saved* liff_id, not the form field: this URL is only useful
+  // once the server has the ID too, and it doubles as confirmation the save landed.
+  const endpointUrl =
+    profile?.shop_id && shop?.liff_id
+      ? `${LIFF_APP_BASE_URL}/?shop_id=${profile.shop_id}&liff_id=${shop.liff_id}`
+      : "";
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -95,11 +151,58 @@ export default function LineSettingsPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>{t("line.guide.title")}</CardTitle>
+          <CardDescription>{t("line.guide.subtitle")}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-6">
+          <ol className="flex flex-col gap-5">
+            {SETUP_STEPS.map((step, index) => (
+              <li key={step.titleKey} className="flex gap-3">
+                <span
+                  aria-hidden
+                  className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+                >
+                  {index + 1}
+                </span>
+                <div className="flex flex-col gap-1">
+                  <p className="font-medium text-foreground">{t(step.titleKey)}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t(step.bodyKey, { baseUrl: LIFF_APP_BASE_URL })}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <Button asChild variant="outline" size="sm" className="self-start">
+            <a href={LINE_CONSOLE_URL} target="_blank" rel="noreferrer">
+              {t("line.guide.openConsole")}
+              <ExternalLink />
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>{t("line.webhookUrl")}</CardTitle>
           <CardDescription>{t("line.webhookHint")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <code className="block break-all rounded-md bg-muted p-3 text-sm">{webhookUrl}</code>
+          <CopyableUrl value={webhookUrl} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("line.endpointUrl")}</CardTitle>
+          <CardDescription>{t("line.endpointHint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {endpointUrl ? (
+            <CopyableUrl value={endpointUrl} />
+          ) : (
+            <p className="text-sm text-muted-foreground">{t("line.endpointPending")}</p>
+          )}
         </CardContent>
       </Card>
 
@@ -116,6 +219,7 @@ export default function LineSettingsPage() {
                 value={form.line_channel_id}
                 onChange={(e) => setForm((f) => ({ ...f, line_channel_id: e.target.value }))}
               />
+              <p className="text-xs text-muted-foreground">{t("line.channelIdHint")}</p>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="line_channel_secret">{t("line.channelSecret")}</Label>
@@ -125,6 +229,7 @@ export default function LineSettingsPage() {
                 value={form.line_channel_secret}
                 onChange={(e) => setForm((f) => ({ ...f, line_channel_secret: e.target.value }))}
               />
+              <p className="text-xs text-muted-foreground">{t("line.channelSecretHint")}</p>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="line_channel_access_token">{t("line.channelAccessToken")}</Label>
@@ -134,6 +239,7 @@ export default function LineSettingsPage() {
                 value={form.line_channel_access_token}
                 onChange={(e) => setForm((f) => ({ ...f, line_channel_access_token: e.target.value }))}
               />
+              <p className="text-xs text-muted-foreground">{t("line.channelAccessTokenHint")}</p>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="liff_id">{t("line.liffId")}</Label>
@@ -142,6 +248,7 @@ export default function LineSettingsPage() {
                 value={form.liff_id}
                 onChange={(e) => setForm((f) => ({ ...f, liff_id: e.target.value }))}
               />
+              <p className="text-xs text-muted-foreground">{t("line.liffIdHint")}</p>
             </div>
             <Button type="submit" disabled={save.isPending} className="self-start">
               {save.isPending ? t("common.saving") : t("common.save")}
