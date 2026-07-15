@@ -13,11 +13,16 @@ import { createEmbedding, createChatReply } from "../_shared/openai.ts";
 import { verifySlipImage, describeSlip2GoCode, type Slip2GoCheckReceiver } from "../_shared/slip2go.ts";
 import { buildSlipCard, slipCardAltText } from "./slipCard.ts";
 
-// Cosine distance above this is treated as "no relevant document" — see the
-// project plan's strict-grounding decision (§6): the bot refuses to answer
-// outside the shop's uploaded docs rather than falling back to general
-// knowledge, to avoid hallucinated answers about a specific shop's policies.
-const MATCH_DISTANCE_THRESHOLD = 0.5;
+// Cosine distance above this means "no document is even on this topic".
+//
+// It is NOT what keeps answers grounded — the system prompt's "use ONLY the
+// context" is, and the model declines when the context doesn't cover the
+// question. So this gate only decides whether it's worth paying for a completion
+// at all, and its only real failure mode is being too tight: at 0.5 a shop whose
+// document literally said "เวลาทำการ: 09.00 - 17.00 น." still got the canned
+// "I don't have that" for "ร้านเปิดปิดกี่โมง". Erring generous costs a few
+// tokens; erring strict makes the bot useless.
+const MATCH_DISTANCE_THRESHOLD = 0.65;
 
 // LINE sends no locale on a message event, so the customer's own text is the
 // only signal there is. Thai has its own Unicode block, so a single Thai
@@ -185,7 +190,17 @@ async function handleMessage(params: {
       });
       if (matchError) throw new Error(matchError.message);
 
-      const relevant = (matches ?? []).filter((m: { distance: number }) => m.distance <= MATCH_DISTANCE_THRESHOLD);
+      const scored = (matches ?? []) as { distance: number; content: string }[];
+      const relevant = scored.filter((m) => m.distance <= MATCH_DISTANCE_THRESHOLD);
+
+      // The one number that explains a bot answering "I don't know" while the
+      // answer sits in the shop's document. Without it the only way to tell a
+      // too-tight threshold from a genuinely off-topic question is to guess.
+      const best = scored.length > 0 ? Math.min(...scored.map((m) => m.distance)) : null;
+      console.log(
+        `line-webhook rag: shop=${shopId} chunks=${scored.length} best_distance=${best ?? "n/a"} ` +
+          `threshold=${MATCH_DISTANCE_THRESHOLD} passed=${relevant.length}`
+      );
 
       if (relevant.length === 0) {
         replyText = noMatchReply(text);
