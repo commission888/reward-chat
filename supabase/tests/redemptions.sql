@@ -10,7 +10,7 @@
 -- Self-contained: creates its own fixtures and rolls everything back.
 
 begin;
-select plan(13);
+select plan(14);
 
 -- Fixture: Demo Coffee Shop (11111111-…) / staff@demo.local (44444444-…) /
 -- customer Alice (55555555-…) come from seed.sql.
