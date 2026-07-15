@@ -60,7 +60,9 @@ Deno.serve(async (req: Request) => {
       .from("customers")
       .update({ phone: nextPhone })
       .eq("id", payload.cid)
-      .select("id, display_name, picture_url, phone, points_balance")
+      // shop_id included so the shape matches what register-customer returns —
+      // the LIFF app puts this straight back into its Customer context.
+      .select("id, shop_id, display_name, picture_url, phone, points_balance")
       .single();
     if (error || !customer) {
       return jsonResponse({ error: error?.message ?? "Failed to save phone" }, { status: 500 });
