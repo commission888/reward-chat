@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useCustomer } from "@/customer/CustomerProvider";
 import { useRewards, isExpired } from "@/customer/useRewards";
@@ -27,6 +27,13 @@ export default function CardPage() {
   const [phoneDraft, setPhoneDraft] = useState<string | null>(null);
   const [phoneMessage, setPhoneMessage] = useState<string | null>(null);
   const phoneValue = phoneDraft ?? customer?.phone ?? "";
+
+  // The customer opened their own shop's loyalty card — "RewardChat" (index.html's
+  // fallback) means nothing to them. The shop name is DB data, so it's shown as-is
+  // rather than translated, same rule as everywhere else it appears.
+  useEffect(() => {
+    if (shop?.name) document.title = shop.name;
+  }, [shop?.name]);
 
   if (loading) {
     return (
