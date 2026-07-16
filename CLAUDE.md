@@ -38,6 +38,16 @@ Seeded local accounts (password `password123` for all): `superadmin@demo.local`,
 
 There is no JS/TS test runner configured in either app — correctness is verified through the pgTAP suite plus manual/Playwright-driven browser checks; there's no `npm test`.
 
+## Deployment
+
+Both frontends deploy through **Vercel's Git integration** — two Vercel projects from the one repo (`commission888/reward-chat`), each with a different Root Directory (`merchant-app` / `customer-liff`). A push to `origin/main` auto-triggers build + deploy; there is no manual deploy step.
+- customer-liff → https://rewardchat-liff.vercel.app
+- merchant-app → https://reward-chat-merchant-app-seven.vercel.app
+
+So **a frontend-only change ships by just committing and pushing** — no separate command, and nothing to touch on the Supabase side. Env vars live in each Vercel project's dashboard (the `.env.production` files are gitignored), not in git.
+
+Backend (migrations + edge functions) does **not** ride along on a git push — it's deployed to the remote Supabase project (ref `kjfsmkcpzocerzazntvv`) via the Supabase MCP tools (`apply_migration`, `deploy_edge_function`). Only reach for those when a change actually involves a migration or an edge function; pure React/Vite edits never need them. Redeploying `line-webhook` must always pass `verify_jwt=false` explicitly (see Edge Functions below).
+
 ## Multi-tenancy & RLS — the pattern every table follows
 
 Tenant isolation is `shop_id`-scoped Postgres RLS. Three security-definer helper functions in `0002_profiles_shops.sql` are the *only* sanctioned way a policy may look up the caller's role/shop:
