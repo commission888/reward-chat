@@ -8,21 +8,22 @@ import { useI18n } from "@/i18n/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+// The shop's admin accounts, rendered in place on the shop's own page. This was
+// a modal reached through a per-row "..." menu, which meant the answer to "who
+// runs this shop?" was two clicks and a popover away from the shop itself.
+//
+// Rows are separated by rules rather than each being wrapped in its own bordered
+// box: they're one list, and outlining every item states the opposite. The
+// borders that remain (the edit/add forms) mark a mode change — you're typing
+// now — which is a border doing a job.
 type Shop = { id: string; name: string };
 type Admin = { id: string; full_name: string | null; email: string | null };
 
-export default function ShopAdminsDialog({
-  shop,
-  onOpenChange,
-}: {
-  shop: Shop | null;
-  onOpenChange: (open: boolean) => void;
-}) {
+export default function ShopAdmins({ shop }: { shop: Shop }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const shopId = shop?.id ?? null;
+  const shopId = shop.id;
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["shop-admins", shopId] });
 
   const [addOpen, setAddOpen] = useState(false);
@@ -39,12 +40,11 @@ export default function ShopAdminsDialog({
 
   const { data: admins, isLoading } = useQuery({
     queryKey: ["shop-admins", shopId],
-    enabled: shopId !== null,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
         .select("id, full_name, email")
-        .eq("shop_id", shopId as string)
+        .eq("shop_id", shopId)
         .eq("role", "admin")
         .order("full_name");
       if (error) throw error;
@@ -129,19 +129,14 @@ export default function ShopAdminsDialog({
   }
 
   return (
-    <Dialog open={shop !== null} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t("admins.title", { name: shop?.name ?? "" })}</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col gap-3">
-          {isLoading && <p className="text-sm text-muted-foreground">{t("common.loading")}</p>}
-          {!isLoading && admins?.length === 0 && (
-            <p className="text-sm text-muted-foreground">{t("admins.noAdmins")}</p>
-          )}
+    <div className="flex flex-col gap-4">
+      {isLoading && <p className="text-sm text-muted-foreground">{t("common.loading")}</p>}
+      {!isLoading && admins?.length === 0 && <p className="text-sm text-muted-foreground">{t("admins.noAdmins")}</p>}
 
-          {admins?.map((admin) => (
-            <div key={admin.id} className="rounded-md border p-3">
+      {admins && admins.length > 0 && (
+        <div className="divide-y divide-border border-y border-border">
+          {admins.map((admin) => (
+            <div key={admin.id} className="py-3">
               {editingId === admin.id ? (
                 <form className="flex flex-col gap-2" onSubmit={handleEditSave}>
                   <Label htmlFor={`name-${admin.id}`}>{t("common.fullName")}</Label>
@@ -211,7 +206,12 @@ export default function ShopAdminsDialog({
                     <p className="truncate text-sm text-muted-foreground">{admin.email}</p>
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <Button variant="ghost" size="icon" aria-label={t("admins.editAria")} onClick={() => startEdit(admin)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t("admins.editAria")}
+                      onClick={() => startEdit(admin)}
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
@@ -230,44 +230,38 @@ export default function ShopAdminsDialog({
               )}
             </div>
           ))}
-
-          {addOpen ? (
-            <form className="flex flex-col gap-2 rounded-md border border-dashed p-3" onSubmit={handleAdd}>
-              <Label htmlFor="add-name">{t("common.fullName")}</Label>
-              <Input id="add-name" value={addName} onChange={(e) => setAddName(e.target.value)} required />
-              <Label htmlFor="add-email">{t("common.email")}</Label>
-              <Input
-                id="add-email"
-                type="email"
-                value={addEmail}
-                onChange={(e) => setAddEmail(e.target.value)}
-                required
-              />
-              <Label htmlFor="add-pass">{t("admins.tempPassword")}</Label>
-              <Input
-                id="add-pass"
-                type="password"
-                minLength={8}
-                value={addPassword}
-                onChange={(e) => setAddPassword(e.target.value)}
-                required
-              />
-              <div className="flex justify-end gap-2 pt-1">
-                <Button type="button" variant="outline" onClick={() => setAddOpen(false)} disabled={addAdmin.isPending}>
-                  {t("common.cancel")}
-                </Button>
-                <Button type="submit" disabled={addAdmin.isPending}>
-                  {addAdmin.isPending ? t("admins.adding") : t("admins.addAdmin")}
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <Button variant="outline" onClick={() => setAddOpen(true)}>
-              {t("admins.addAdminPlus")}
-            </Button>
-          )}
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+
+      {addOpen ? (
+        <form className="flex flex-col gap-2 rounded-md border border-dashed p-3" onSubmit={handleAdd}>
+          <Label htmlFor="add-name">{t("common.fullName")}</Label>
+          <Input id="add-name" value={addName} onChange={(e) => setAddName(e.target.value)} required />
+          <Label htmlFor="add-email">{t("common.email")}</Label>
+          <Input id="add-email" type="email" value={addEmail} onChange={(e) => setAddEmail(e.target.value)} required />
+          <Label htmlFor="add-pass">{t("admins.tempPassword")}</Label>
+          <Input
+            id="add-pass"
+            type="password"
+            minLength={8}
+            value={addPassword}
+            onChange={(e) => setAddPassword(e.target.value)}
+            required
+          />
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="outline" onClick={() => setAddOpen(false)} disabled={addAdmin.isPending}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" disabled={addAdmin.isPending}>
+              {addAdmin.isPending ? t("admins.adding") : t("admins.addAdmin")}
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <Button variant="outline" className="self-start" onClick={() => setAddOpen(true)}>
+          {t("admins.addAdminPlus")}
+        </Button>
+      )}
+    </div>
   );
 }

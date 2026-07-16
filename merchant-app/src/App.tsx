@@ -9,6 +9,7 @@ import RoleLanding from "@/components/RoleLanding";
 import LoginPage from "@/routes/LoginPage";
 import DashboardPage from "@/routes/DashboardPage";
 import ShopsPage from "@/routes/ShopsPage";
+import ShopDetailPage from "@/routes/ShopDetailPage";
 import StaffPage from "@/routes/StaffPage";
 import CustomersPage from "@/routes/CustomersPage";
 import CustomerDetailPage from "@/routes/CustomerDetailPage";
@@ -45,6 +46,14 @@ function App() {
                 element={
                   <RequireRole roles={["super_admin"]}>
                     <ShopsPage />
+                  </RequireRole>
+                }
+              />
+              <Route
+                path="/admin/shops/:shopId"
+                element={
+                  <RequireRole roles={["super_admin"]}>
+                    <ShopDetailPage />
                   </RequireRole>
                 }
               />
