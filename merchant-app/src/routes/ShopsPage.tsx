@@ -5,6 +5,7 @@ import { MoreHorizontal } from "lucide-react";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,31 +118,31 @@ export default function ShopsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t("shops.title")}</h1>
-          <p className="text-muted-foreground">{t("shops.subtitle")}</p>
-        </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>{t("shops.newShop")}</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t("shops.createTitle")}</DialogTitle>
-            </DialogHeader>
-            <form className="flex flex-col gap-4" onSubmit={handleCreate}>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="shop-name">{t("shops.shopName")}</Label>
-                <Input id="shop-name" value={name} onChange={(e) => setName(e.target.value)} required />
-              </div>
-              <Button type="submit" disabled={createShop.isPending}>
-                {createShop.isPending ? t("common.creating") : t("shops.createShop")}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader
+        title={t("shops.title")}
+        subtitle={t("shops.subtitle")}
+        actions={
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button>{t("shops.newShop")}</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{t("shops.createTitle")}</DialogTitle>
+              </DialogHeader>
+              <form className="flex flex-col gap-4" onSubmit={handleCreate}>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="shop-name">{t("shops.shopName")}</Label>
+                  <Input id="shop-name" value={name} onChange={(e) => setName(e.target.value)} required />
+                </div>
+                <Button type="submit" disabled={createShop.isPending}>
+                  {createShop.isPending ? t("common.creating") : t("shops.createShop")}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        }
+      />
       <Card>
         <CardHeader>
           <CardTitle>{t("shops.all")}</CardTitle>

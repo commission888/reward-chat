@@ -6,6 +6,7 @@ import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -154,10 +155,7 @@ export default function LineSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">{t("line.title")}</h1>
-        <p className="text-muted-foreground">{t("line.subtitle")}</p>
-      </div>
+      <PageHeader title={t("line.title")} subtitle={t("line.subtitle")} />
 
       <Card>
         <CardHeader>

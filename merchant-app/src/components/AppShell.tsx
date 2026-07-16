@@ -114,8 +114,15 @@ export default function AppShell() {
           <LanguageToggle className="ml-auto" />
         </header>
 
-        <main className="flex-1 overflow-y-auto p-5 sm:p-8">
-          <Outlet />
+        {/* The page measure lives here, once, rather than in 13 routes. Without
+            it every screen ran the full width of the monitor, so a table on a
+            27" display stretched its columns to opposite edges and the eye had
+            to travel the whole desk to read one row. `mx-auto` keeps the block
+            centred in the remaining space beside the sidebar. */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-page p-5 sm:p-8">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

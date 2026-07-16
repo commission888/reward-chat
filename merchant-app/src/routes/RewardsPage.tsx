@@ -5,6 +5,7 @@ import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -137,10 +138,7 @@ export default function RewardsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">{t("rewards.title")}</h1>
-        <p className="text-muted-foreground">{t("rewards.subtitle")}</p>
-      </div>
+      <PageHeader title={t("rewards.title")} subtitle={t("rewards.subtitle")} />
 
       <Card>
         <CardHeader>

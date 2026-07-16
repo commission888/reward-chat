@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { extractText } from "@/lib/extractText";
 import { useAuth } from "@/auth/AuthProvider";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { PageHeader } from "@/components/PageHeader";
 import { KNOWLEDGE_FILES_BUCKET, getFunctionErrorMessage } from "@rewardchat/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,22 +85,27 @@ export default function KnowledgeBasePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t("kb.title")}</h1>
-          <p className="text-muted-foreground">{t("kb.subtitle")}</p>
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".docx,.xlsx"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-        <Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-          {uploading ? t("kb.uploading") : t("kb.upload")}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("kb.title")}
+        subtitle={t("kb.subtitle")}
+        actions={
+          <>
+            {/* Hidden on purpose — the visible control is the Button beside it,
+                which forwards the click. Kept adjacent to that Button so the two
+                halves of one control don't drift apart. */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".docx,.xlsx"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+              {uploading ? t("kb.uploading") : t("kb.upload")}
+            </Button>
+          </>
+        }
+      />
 
       <Card>
         <CardHeader>

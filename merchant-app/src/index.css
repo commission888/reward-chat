@@ -19,6 +19,11 @@
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Kanit', sans-serif;
+    /* The one page measure. Every route renders inside it (AppShell's <main>),
+       so section edges line up across nav, header, content, and tables — which
+       is the whole point of a grid you can see. Sized in rem so it tracks the
+       html font-size lever rather than fighting it. Feeds `max-w-page`. */
+    --container-page: 72rem;
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);

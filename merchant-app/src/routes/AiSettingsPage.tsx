@@ -11,6 +11,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,10 +84,7 @@ export default function AiSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">{t("ai.title")}</h1>
-        <p className="text-muted-foreground">{t("ai.subtitle")}</p>
-      </div>
+      <PageHeader title={t("ai.title")} subtitle={t("ai.subtitle")} />
 
       <Card>
         <CardHeader>

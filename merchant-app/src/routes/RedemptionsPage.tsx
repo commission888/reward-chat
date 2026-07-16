@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,10 +93,7 @@ export default function RedemptionsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">{t("redemptions.title")}</h1>
-        <p className="text-muted-foreground">{t("redemptions.subtitle")}</p>
-      </div>
+      <PageHeader title={t("redemptions.title")} subtitle={t("redemptions.subtitle")} />
 
       <Card>
         <CardHeader>

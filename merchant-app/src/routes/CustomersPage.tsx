@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { PageHeader } from "@/components/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,10 +23,7 @@ export default function CustomersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">{t("customers.title")}</h1>
-        <p className="text-muted-foreground">{t("customers.subtitle")}</p>
-      </div>
+      <PageHeader title={t("customers.title")} subtitle={t("customers.subtitle")} />
       <Card>
         <CardHeader>
           <CardTitle>{t("customers.all")}</CardTitle>

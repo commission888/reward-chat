@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,14 +67,11 @@ export default function StaffPage() {
     createStaff.mutate();
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t("staff.title")}</h1>
-          <p className="text-muted-foreground">{t("staff.subtitle")}</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+  // Lifted out of the JSX below rather than inlined into PageHeader's actions
+  // slot: it's ~45 lines of form, and nesting that inside a prop buries the
+  // page's actual structure under it.
+  const newAccountDialog = (
+    <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>{t("staff.newAccount")}</Button>
           </DialogTrigger>
@@ -118,8 +116,12 @@ export default function StaffPage() {
               </Button>
             </form>
           </DialogContent>
-        </Dialog>
-      </div>
+    </Dialog>
+  );
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title={t("staff.title")} subtitle={t("staff.subtitle")} actions={newAccountDialog} />
       <Card>
         <CardHeader>
           <CardTitle>{t("staff.team")}</CardTitle>

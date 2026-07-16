@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useI18n } from "@/i18n/LanguageProvider";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -57,10 +58,7 @@ export default function ScanPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">{t("scan.title")}</h1>
-        <p className="text-muted-foreground">{t("scan.subtitle")}</p>
-      </div>
+      <PageHeader title={t("scan.title")} subtitle={t("scan.subtitle")} />
 
       <Card>
         <CardHeader>
