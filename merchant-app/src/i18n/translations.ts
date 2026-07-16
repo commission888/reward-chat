@@ -115,6 +115,32 @@ export const translations: Record<Lang, Record<string, string>> = {
     "ai.costBody":
       "Two things: reading each document you upload (once per upload), and each customer question your bot answers. Both are billed by OpenAI directly to the payment method on your OpenAI account — not through RewardChat.",
 
+    "replies.title": "Bot replies",
+    "replies.hint":
+      "The fixed messages your bot sends when it can't answer, or when a slip doesn't pass. Leave a box empty to use the wording shown in grey.",
+    "replies.chatGroup": "When the bot can't answer a question",
+    "replies.chatGroupHint":
+      "The bot replies in whichever language the customer wrote in, so both are used. It sends this when your documents don't cover the question — or when no OpenAI key is set up yet.",
+    "replies.slipGroup": "When a payment slip doesn't pass",
+    "replies.slipGroupHint":
+      "A slip is an image, so there's no way to tell what language the customer reads — these are sent as written, in one language. A slip that does pass gets the points card instead, which isn't editable.",
+    "replies.chat.no_answer_th": "Customer wrote in Thai",
+    "replies.chat.no_answer_en": "Customer wrote in another language",
+    "replies.slip.receiver_mismatch": "Paid to the wrong account",
+    "replies.slip.amount_mismatch": "Amount doesn't match",
+    "replies.slip.date_mismatch": "Transfer date doesn't match",
+    "replies.slip.not_found": "Bank has no record of it",
+    "replies.slip.forged": "Slip looks forged or damaged",
+    "replies.slip.duplicate": "Slip already used",
+    "replies.slip.bank_error": "Bank system is down",
+    "replies.slip.unknown": "Can't read the slip",
+    "replies.slip.system_error": "Our system couldn't check it",
+    "replies.usingDefault": "Default",
+    "replies.customised": "Edited",
+    "replies.reset": "Reset all to default",
+    "replies.saved": "Replies saved",
+    "replies.errSave": "Could not save the replies",
+
     "line.title": "LINE settings",
     "line.subtitle": "Connect your shop's LINE Official Account and LIFF app.",
     "line.webhookUrl": "Webhook URL",
@@ -400,6 +426,32 @@ export const translations: Record<Lang, Record<string, string>> = {
     "ai.costTitle": "สิ่งที่คุณจะถูกเรียกเก็บเงิน",
     "ai.costBody":
       "มีสองอย่าง: การอ่านเอกสารแต่ละไฟล์ที่อัปโหลด (คิดครั้งเดียวต่อการอัปโหลด) และทุกคำถามที่บอทตอบลูกค้า ทั้งสองอย่าง OpenAI เรียกเก็บจากบัตรในบัญชี OpenAI ของคุณโดยตรง ไม่ได้ผ่าน RewardChat",
+
+    "replies.title": "ข้อความตอบของบอท",
+    "replies.hint":
+      "ข้อความสำเร็จรูปที่บอทส่งเวลาตอบคำถามไม่ได้ หรือเวลาสลิปไม่ผ่าน ช่องไหนเว้นว่างไว้ จะใช้ข้อความสีเทาที่แสดงอยู่",
+    "replies.chatGroup": "เมื่อบอทตอบคำถามไม่ได้",
+    "replies.chatGroupHint":
+      "บอทตอบตามภาษาที่ลูกค้าพิมพ์มา จึงใช้ทั้งสองช่อง ข้อความนี้จะถูกส่งเมื่อเอกสารของร้านไม่มีคำตอบเรื่องนั้น หรือเมื่อยังไม่ได้ใส่ OpenAI key",
+    "replies.slipGroup": "เมื่อสลิปไม่ผ่าน",
+    "replies.slipGroupHint":
+      "สลิปเป็นรูปภาพ จึงไม่มีทางรู้ว่าลูกค้าอ่านภาษาอะไร ข้อความกลุ่มนี้ส่งตามที่เขียนไว้ ภาษาเดียว ส่วนสลิปที่ผ่านจะได้การ์ดแต้มแทน ซึ่งแก้ไขไม่ได้",
+    "replies.chat.no_answer_th": "ลูกค้าพิมพ์ภาษาไทย",
+    "replies.chat.no_answer_en": "ลูกค้าพิมพ์ภาษาอื่น",
+    "replies.slip.receiver_mismatch": "โอนเข้าบัญชีผิด",
+    "replies.slip.amount_mismatch": "ยอดเงินไม่ตรง",
+    "replies.slip.date_mismatch": "วันที่โอนไม่ตรง",
+    "replies.slip.not_found": "ธนาคารไม่มีรายการนี้",
+    "replies.slip.forged": "สลิปอาจถูกปลอมแปลง",
+    "replies.slip.duplicate": "สลิปถูกใช้ไปแล้ว",
+    "replies.slip.bank_error": "ระบบธนาคารขัดข้อง",
+    "replies.slip.unknown": "อ่านสลิปไม่ออก",
+    "replies.slip.system_error": "ระบบเราตรวจสอบไม่ได้",
+    "replies.usingDefault": "ค่าเริ่มต้น",
+    "replies.customised": "แก้แล้ว",
+    "replies.reset": "คืนค่าเริ่มต้นทั้งหมด",
+    "replies.saved": "บันทึกข้อความตอบแล้ว",
+    "replies.errSave": "บันทึกข้อความตอบไม่สำเร็จ",
 
     "line.title": "ตั้งค่า LINE",
     "line.subtitle": "เชื่อมต่อ LINE Official Account และ LIFF ของร้านคุณ",

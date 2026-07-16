@@ -526,6 +526,7 @@ export type Database = {
           name: string
           openai_api_key: string | null
           points_config: Json
+          reply_templates: Json
           slip_receiver_account_name_en: string | null
           slip_receiver_account_name_th: string | null
           slip_receiver_account_number: string | null
@@ -544,6 +545,7 @@ export type Database = {
           name: string
           openai_api_key?: string | null
           points_config?: Json
+          reply_templates?: Json
           slip_receiver_account_name_en?: string | null
           slip_receiver_account_name_th?: string | null
           slip_receiver_account_number?: string | null
@@ -562,6 +564,7 @@ export type Database = {
           name?: string
           openai_api_key?: string | null
           points_config?: Json
+          reply_templates?: Json
           slip_receiver_account_name_en?: string | null
           slip_receiver_account_name_th?: string | null
           slip_receiver_account_number?: string | null

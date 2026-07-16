@@ -11,6 +11,7 @@ import {
 } from "../_shared/line.ts";
 import { createEmbedding, createChatReply } from "../_shared/openai.ts";
 import { verifySlipImage, describeSlip2GoCode, type Slip2GoCheckReceiver } from "../_shared/slip2go.ts";
+import { parseReplyTemplates, resolveReplyTemplate, type ReplyTemplates } from "../_shared/replyTemplates.ts";
 import { buildSlipCard, slipCardAltText } from "./slipCard.ts";
 
 // There is deliberately no distance threshold here any more, and it should not
@@ -42,12 +43,16 @@ const MATCH_COUNT = 5;
 // Anything else falls back to English rather than guessing.
 const THAI_CHARACTER = /[\u0E00-\u0E7F]/;
 
-// Hardcoded here rather than routed through t(): that lives in the browser, and
-// this is the same treatment the slip replies in describeSlip2GoCode already get.
-function noMatchReply(customerText: string): string {
-  return THAI_CHARACTER.test(customerText)
-    ? "ขออภัย ไม่มีข้อมูลเรื่องนี้ กรุณาติดต่อร้านโดยตรง"
-    : "Sorry, I don't have information about that. Please contact the shop directly.";
+// The shop can rewrite both sides of this from /settings/ai; resolveReplyTemplate
+// falls back to the stock wording for whichever language was picked. Still not
+// routed through t(): that lives in the browser, and the language chosen here is
+// the *customer's*, which has nothing to do with the language the merchant reads
+// their own dashboard in.
+function noMatchReply(customerText: string, templates: ReplyTemplates): string {
+  return resolveReplyTemplate(
+    templates,
+    THAI_CHARACTER.test(customerText) ? "chat.no_answer_th" : "chat.no_answer_en"
+  );
 }
 
 // Slip2Go codes that mean the slip is genuine and (if a receiver was supplied)
@@ -70,6 +75,7 @@ type ShopRow = {
   line_channel_access_token: string;
   liff_id: string | null;
   openai_api_key: string | null;
+  reply_templates: unknown;
   points_config: { points_per_baht?: number; points_per_slip?: number; redeem_threshold?: number } | null;
   slip2go_api_secret: string | null;
   slip_receiver_account_type: string | null;
@@ -90,8 +96,8 @@ Deno.serve(async (req: Request) => {
     const { data: shop, error: shopError } = await service
       .from("shops")
       .select(
-        "id, line_channel_secret, line_channel_access_token, liff_id, openai_api_key, points_config, " +
-          "slip2go_api_secret, slip_receiver_account_type, slip_receiver_account_name_th, " +
+        "id, line_channel_secret, line_channel_access_token, liff_id, openai_api_key, reply_templates, " +
+          "points_config, slip2go_api_secret, slip_receiver_account_type, slip_receiver_account_name_th, " +
           "slip_receiver_account_name_en, slip_receiver_account_number"
       )
       .eq("id", shopId)
@@ -124,6 +130,7 @@ Deno.serve(async (req: Request) => {
     if (events.length === 0) return jsonResponse({ ok: true });
 
     const accessToken = shop.line_channel_access_token;
+    const templates = parseReplyTemplates(shop.reply_templates);
 
     for (const event of events) {
       if (event.type !== "message") continue;
@@ -138,14 +145,22 @@ Deno.serve(async (req: Request) => {
         const text = event.message.text;
         // deno-lint-ignore no-explicit-any
         (globalThis as any).EdgeRuntime?.waitUntil(
-          handleMessage({ shopId, userId, text, replyToken, accessToken, apiKey: shop.openai_api_key })
+          handleMessage({
+            shopId,
+            userId,
+            text,
+            replyToken,
+            accessToken,
+            apiKey: shop.openai_api_key,
+            templates,
+          })
         );
       } else if (event.message?.type === "image" && event.message.id) {
         if (!shop.slip2go_api_secret) continue; // slip verification not enabled for this shop
         const messageId = event.message.id;
         // deno-lint-ignore no-explicit-any
         (globalThis as any).EdgeRuntime?.waitUntil(
-          handleSlipImage({ shopId, userId, replyToken, accessToken, messageId, shop })
+          handleSlipImage({ shopId, userId, replyToken, accessToken, messageId, shop, templates })
         );
       }
     }
@@ -164,8 +179,9 @@ async function handleMessage(params: {
   replyToken: string;
   accessToken: string;
   apiKey: string | null;
+  templates: ReplyTemplates;
 }) {
-  const { shopId, userId, text, replyToken, accessToken, apiKey } = params;
+  const { shopId, userId, text, replyToken, accessToken, apiKey, templates } = params;
   const service = createServiceClient();
 
   try {
@@ -192,7 +208,7 @@ async function handleMessage(params: {
     // reply as "no matching document" instead of throwing into that void.
     if (!apiKey) {
       console.warn(`line-webhook: shop ${shopId} has no openai_api_key — answering with the canned reply`);
-      replyText = noMatchReply(text);
+      replyText = noMatchReply(text, templates);
     } else {
       const queryEmbedding = await createEmbedding(text, apiKey);
       const { data: matches, error: matchError } = await service.rpc("match_document_chunks", {
@@ -212,7 +228,7 @@ async function handleMessage(params: {
       if (scored.length === 0) {
         // A shop with no documents at all — the one case retrieval can be sure
         // about, and the only one left for the canned reply.
-        replyText = noMatchReply(text);
+        replyText = noMatchReply(text, templates);
       } else {
         const context = scored.map((m) => m.content).join("\n---\n");
         // The language line is a *form* instruction, so it doesn't loosen the
@@ -254,8 +270,9 @@ async function handleSlipImage(params: {
   accessToken: string;
   messageId: string;
   shop: ShopRow;
+  templates: ReplyTemplates;
 }) {
-  const { shopId, userId, replyToken, accessToken, messageId, shop } = params;
+  const { shopId, userId, replyToken, accessToken, messageId, shop, templates } = params;
   const service = createServiceClient();
 
   async function reply(text: string) {
@@ -337,7 +354,7 @@ async function handleSlipImage(params: {
         status: result.code.startsWith("500") ? "error" : "rejected",
         raw_response: result,
       });
-      await reply(describeSlip2GoCode(result.code));
+      await reply(describeSlip2GoCode(result.code, templates));
       return;
     }
 
@@ -371,7 +388,7 @@ async function handleSlipImage(params: {
 
     if (insertError) {
       if (insertError.code === "23505") {
-        await reply(describeSlip2GoCode("200501")); // "This slip has already been used"
+        await reply(describeSlip2GoCode("200501", templates)); // "This slip has already been used"
         return;
       }
       throw new Error(insertError.message);
@@ -407,6 +424,6 @@ async function handleSlipImage(params: {
     } catch {
       // best-effort logging only
     }
-    await reply("ขออภัย ระบบไม่สามารถตรวจสอบสลิปได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง");
+    await reply(resolveReplyTemplate(templates, "slip.system_error"));
   }
 }

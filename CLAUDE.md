@@ -128,7 +128,7 @@ All use `_shared/supabaseClients.ts`'s two client constructors: `createCallerCli
 
 Three things about `line-webhook`'s replies that aren't obvious from the code:
 - **`handleMessage`'s catch only logs.** Anything that throws inside it leaves the customer staring at silence — worse than a wrong answer, and invisible unless you're reading `chat_logs`. That's why a shop with no OpenAI key short-circuits to the canned reply instead of letting `createEmbedding` throw.
-- **Replies match the customer's language, decided from their own text** (`noMatchReply`'s `THAI_CHARACTER` test — Thai has its own Unicode block, so one character is a reliable tell). LINE sends no locale on a message event, so there is nothing else to go on. All webhook prose is hardcoded Thai/English **on purpose** — `t()` lives in the browser (see the i18n section's exclusions).
+- **Replies match the customer's language, decided from their own text** (`noMatchReply`'s `THAI_CHARACTER` test — Thai has its own Unicode block, so one character is a reliable tell). LINE sends no locale on a message event, so there is nothing else to go on. Webhook prose never goes through `t()` — that lives in the browser, and the language picked here is the *customer's*, unrelated to the language the merchant reads their dashboard in. The wording itself is a per-shop setting; see Bot reply wording below.
 - **A verified slip replies with a Flex card** (`line-webhook/slipCard.ts`): amount, points earned, balance, progress toward `redeem_threshold`, and a button to `https://liff.line.me/{liff_id}` (omitted entirely when the shop has no `liff_id`, rather than linking to `liff.line.me/null`). Points are credited *before* the reply is sent, so a card that fails to render must never mean the customer hears nothing: `replyCard` degrades reply-flex → push-flex → plain text, and the `altText` carries the real news so it works as a message on its own.
 
 ## AI keys are per-shop, not platform-level (`0014_shop_openai_key.sql`)
@@ -140,6 +140,18 @@ Two consequences worth knowing before touching this:
 - **The embedding model is not a per-shop choice**, only the key. Every vector in `document_chunks` must come from the same model to be comparable, and both the column and `match_document_chunks()` are typed `vector(1536)` to match `text-embedding-3-small`. Changing the *key* is safe (same model → same vectors, no re-ingest); changing the *model or provider* would silently make every existing chunk unfindable — no error, just a bot that answers "I don't know" forever.
 
 `update-shop-ai-settings` test-calls OpenAI before storing a key, so a typo'd or expired one is rejected at the point of entry rather than surfacing days later as a mysteriously silent bot.
+
+## Bot reply wording is a per-shop setting (`0019_shop_reply_templates.sql`)
+
+The canned sentences the LINE bot sends — "I don't have that information", and every slip-rejection message — are rewritable by each shop's admin on `/settings/ai`. `shops.reply_templates` is a **sparse** jsonb bag of overrides: a key is present only for a sentence the shop actually rewrote, and `resolveReplyTemplate(templates, key)` falls back to the system default in `_shared/replyTemplates.ts`. **The defaults live in code and are never seeded into the column** — seeding would freeze today's wording into every shop's row and make "the shop chose this" indistinguishable from "the shop never touched it".
+
+- **A blank override means reset, never mute.** `resolveReplyTemplate` treats `""`/whitespace as absent, and `update-shop-reply-templates` deletes the key rather than storing `""`. This isn't tidiness: an empty reply throws at the LINE API, and in `handleMessage` that lands in the log-only catch — the customer would hear *nothing*.
+- **It is its own edge function, and must stay that way.** `update-shop-ai-settings` writes `openai_api_key` unconditionally from its body, and the key field is write-only (always submitted blank). Folding templates into it would mean every "save my reply text" silently cleared the shop's OpenAI key.
+- **`chat.no_answer` is a th/en pair; the slip messages are single strings.** Not an oversight — a text message carries the customer's own words to detect a language from, and a slip is an *image* that carries none. A shop serving English customers rewrites the slip strings in English.
+- **Only standalone sentences are configurable, never the slip Flex card** (`slipCard.ts`). Every line of that card labels or interpolates a number, so exposing it would mean handing shops `{points}`-style placeholders to type correctly — one typo ships a literal `{points}` to a customer. Keep that boundary.
+- **`_shared/replyTemplates.ts` and `packages/shared/src/replyTemplates.ts` are hand-kept mirrors.** Edge functions run on Deno and can't import the npm workspace, and reaching outside `supabase/functions` breaks the deploy bundle — so change one, change the other. The edge copy is what customers actually read; the shared copy only feeds the merchant form's grey placeholders, so drift shows up as a stale placeholder rather than a wrong reply.
+
+`describeSlip2GoCode` has **no `200000` branch**: its only caller reaches it exclusively on codes *outside* `SLIP_SUCCESS_CODES` (`200000`/`200200`), so the "ตรวจสอบสลิปสำเร็จ" string it used to carry was unreachable — a verified slip gets the Flex receipt instead.
 
 ## RAG knowledge base — parsing happens client-side, not in the edge function
 

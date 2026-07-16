@@ -3,6 +3,8 @@
 // `Authorization: Bearer <secret>`, field `file` is the slip image, optional
 // `payload` (JSON, as a form field) carries checkReceiver/checkDuplicate.
 
+import { resolveReplyTemplate, type ReplyTemplates } from "./replyTemplates.ts";
+
 // Overridable only for pointing tests at a local mock server — never set
 // SLIP2GO_BASE_URL in a real deployment.
 const SLIP2GO_BASE_URL = Deno.env.get("SLIP2GO_BASE_URL") ?? "https://connect.slip2go.com";
@@ -60,27 +62,36 @@ export async function verifySlipImage(
   return json;
 }
 
-// A human-readable Thai reply for the customer, derived from Slip2Go's code.
+// A human-readable reply for the customer, derived from Slip2Go's code.
 // See https://slip2go.com/guide/response for the full code reference.
-export function describeSlip2GoCode(code: string): string {
+//
+// The wording is a per-shop setting (/settings/ai): every branch below resolves
+// through the shop's `reply_templates`, falling back to the system default when
+// the shop hasn't rewritten that sentence. Pass the shop's templates in; `{}` or
+// null gives you the stock Thai wording this function used to hardcode.
+//
+// There's no `200000` branch: its only caller reaches this function exclusively
+// on codes *outside* SLIP_SUCCESS_CODES (which holds 200000 and 200200), so the
+// "ตรวจสอบสลิปสำเร็จ" string this used to carry was unreachable — a verified slip
+// gets the Flex receipt instead. Leaving it in would have put a dead field on the
+// settings page that no customer could ever be shown.
+export function describeSlip2GoCode(code: string, templates?: ReplyTemplates | null): string {
   switch (code) {
-    case "200000":
-      return "ตรวจสอบสลิปสำเร็จ";
     case "200401":
-      return "บัญชีผู้รับในสลิปไม่ตรงกับบัญชีร้านค้า";
+      return resolveReplyTemplate(templates, "slip.receiver_mismatch");
     case "200402":
-      return "ยอดเงินในสลิปไม่ตรงกับที่คาดไว้";
+      return resolveReplyTemplate(templates, "slip.amount_mismatch");
     case "200403":
-      return "วันที่โอนในสลิปไม่ตรงกับที่คาดไว้";
+      return resolveReplyTemplate(templates, "slip.date_mismatch");
     case "200404":
-      return "ไม่พบรายการนี้ในระบบธนาคาร กรุณาตรวจสอบสลิปอีกครั้ง";
+      return resolveReplyTemplate(templates, "slip.not_found");
     case "200500":
-      return "สลิปนี้อาจถูกปลอมแปลงหรือเสียหาย";
+      return resolveReplyTemplate(templates, "slip.forged");
     case "200501":
-      return "สลิปนี้เคยถูกใช้ไปแล้ว";
+      return resolveReplyTemplate(templates, "slip.duplicate");
     case "200502":
-      return "ระบบธนาคารขัดข้อง กรุณาลองใหม่อีกครั้ง";
+      return resolveReplyTemplate(templates, "slip.bank_error");
     default:
-      return "ไม่สามารถตรวจสอบสลิปนี้ได้ กรุณาส่งรูปสลิปที่ชัดเจน";
+      return resolveReplyTemplate(templates, "slip.unknown");
   }
 }

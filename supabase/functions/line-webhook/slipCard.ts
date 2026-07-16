@@ -3,6 +3,12 @@
 // Text is hardcoded Thai like the rest of this function's replies: the merchant
 // apps' t() lives in the browser, and a webhook has no idea what language the
 // customer reads — LINE gives us no locale on a message event.
+//
+// Deliberately NOT part of the per-shop reply_templates feature: every line here
+// either labels a number or interpolates one, so making it editable would mean
+// handing shops {points}-style placeholders to type correctly — and a typo would
+// ship a literal "{points}" to a paying customer. The standalone sentences the
+// bot sends on their own are the configurable ones.
 
 type CardInput = {
   amount: number;
