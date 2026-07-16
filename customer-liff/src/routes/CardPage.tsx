@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useCustomer } from "@/customer/CustomerProvider";
 import { useRewards, isExpired } from "@/customer/useRewards";
@@ -38,7 +39,7 @@ export default function CardPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6">
-        <Skeleton className="h-44 w-full max-w-md rounded-3xl" />
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="text-base text-muted-foreground">{t("card.joining", { shop: shop?.name ?? "" })}</p>
       </div>
     );
