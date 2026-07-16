@@ -150,10 +150,16 @@ export default function CardPage() {
             {pendingCoupons.map((c) => (
               <div
                 key={c.id}
-                className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5 px-5 py-6 text-center"
+                className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5 px-5 py-6 text-center"
               >
                 <p className="text-base font-medium text-foreground">{c.reward_name}</p>
-                <p className="font-mono text-4xl font-bold tracking-[0.2em] text-primary">{c.code}</p>
+                {/* Staff scan this to approve the redemption (it encodes the
+                    coupon's id, which complete_redemption takes). The short code
+                    below stays as a manual fallback if a camera won't cooperate. */}
+                <div className="rounded-2xl border border-border bg-white p-4">
+                  <QRCodeSVG value={c.id} size={180} fgColor="#0F172A" bgColor="#FFFFFF" />
+                </div>
+                <p className="font-mono text-2xl font-bold tracking-[0.2em] text-primary">{c.code}</p>
                 <p className="text-sm text-muted-foreground">
                   {t("card.couponHint", { points: c.points_cost })}
                 </p>

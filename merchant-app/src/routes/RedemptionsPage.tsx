@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
 import { useI18n } from "@/i18n/LanguageProvider";
 import { PageHeader } from "@/components/PageHeader";
+import { QrScanner } from "@/components/QrScanner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -91,9 +92,31 @@ export default function RedemptionsPage() {
   // happen — or take them for nothing. An unwanted coupon simply expires.
   const busy = approve.isPending;
 
+  // The coupon QR encodes the redemption's id; complete_redemption takes it from
+  // there. Guard against a stray scan (a loyalty card, a points-grant URL) with a
+  // format check before touching the RPC, so it never sees a non-uuid.
+  const handleScan = (text: string) => {
+    const id = text.trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      toast.error(t("redemptions.notCoupon"));
+      return;
+    }
+    approve.mutate(id);
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("redemptions.title")} subtitle={t("redemptions.subtitle")} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("redemptions.scanTitle")}</CardTitle>
+          <CardDescription>{t("redemptions.scanHint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <QrScanner onDecode={handleScan} disabled={busy} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
