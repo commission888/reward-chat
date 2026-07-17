@@ -24,6 +24,11 @@ import {
 } from "@/components/ui/select";
 import { THAI_BANKS, MERCHANT_ACCOUNT_TYPES } from "@/lib/thaiBanks";
 
+// Merchant/e-wallet types identify the receiver by a Merchant ID (KShop) or
+// wallet number, not a bank account number — so the number field relabels itself
+// to match, since "account number" reads as wrong for a KShop QR.
+const MERCHANT_TYPE_CODES = new Set(MERCHANT_ACCOUNT_TYPES.map((type) => type.code));
+
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive"> = {
   credited: "default",
   rejected: "secondary",
@@ -237,10 +242,15 @@ export default function PaymentSettingsPage() {
                     </Select>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor={`account_number_${row._id}`}>{t("pay.accountNumber")}</Label>
+                    <Label htmlFor={`account_number_${row._id}`}>
+                      {MERCHANT_TYPE_CODES.has(row.account_type) ? t("pay.merchantId") : t("pay.accountNumber")}
+                    </Label>
                     <Input
                       id={`account_number_${row._id}`}
                       autoComplete="off"
+                      placeholder={
+                        MERCHANT_TYPE_CODES.has(row.account_type) ? t("pay.merchantIdPlaceholder") : undefined
+                      }
                       value={row.account_number}
                       onChange={(e) => updateRow(row._id, { account_number: e.target.value })}
                     />
