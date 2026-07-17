@@ -94,6 +94,13 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     "ai.title": "AI settings",
     "ai.subtitle": "Your shop's chatbot answers using the AI provider you pick below.",
+    "ai.chatToggleTitle": "Chatbot",
+    "ai.chatToggleHint": "Turn the AI chatbot on or off. Slip verification and points keep working either way.",
+    "ai.chatToggleLabel": "Reply to customer messages",
+    "ai.chatOn": "On — the bot answers customer questions.",
+    "ai.chatOff": "Off — the bot won't reply to messages. Slip verification still credits points.",
+    "ai.chatOnToast": "Chatbot turned on",
+    "ai.chatOffToast": "Chatbot turned off — slip verification still works",
     "ai.keyTitle": "AI provider & key",
     "ai.keyHint":
       "Reads your uploaded documents and writes the chatbot's replies. Slip verification does not use AI and keeps working without a key.",
@@ -436,6 +443,13 @@ export const translations: Record<Lang, Record<string, string>> = {
 
     "ai.title": "ตั้งค่า AI",
     "ai.subtitle": "แชทบอทของร้านตอบคำถามด้วยผู้ให้บริการ AI ที่คุณเลือกด้านล่าง",
+    "ai.chatToggleTitle": "แชทบอท",
+    "ai.chatToggleHint": "เปิดหรือปิดแชทบอท AI — การตรวจสลิปและเพิ่มแต้มยังทำงานปกติไม่ว่าจะเปิดหรือปิด",
+    "ai.chatToggleLabel": "ตอบข้อความลูกค้า",
+    "ai.chatOn": "เปิด — บอทจะตอบคำถามลูกค้า",
+    "ai.chatOff": "ปิด — บอทจะไม่ตอบข้อความ แต่การตรวจสลิปยังเพิ่มแต้มให้ตามปกติ",
+    "ai.chatOnToast": "เปิดแชทบอทแล้ว",
+    "ai.chatOffToast": "ปิดแชทบอทแล้ว — การตรวจสลิปยังทำงานปกติ",
     "ai.keyTitle": "ผู้ให้บริการ AI และ key",
     "ai.keyHint":
       "ใช้อ่านเอกสารที่อัปโหลดและเขียนคำตอบของแชทบอท ส่วนการตรวจสลิปไม่ใช้ AI ทำงานได้แม้ไม่มี key",

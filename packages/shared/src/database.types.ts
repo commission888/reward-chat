@@ -517,6 +517,7 @@ export type Database = {
       }
       shops: {
         Row: {
+          ai_chat_enabled: boolean
           ai_provider: string
           created_at: string
           gemini_api_key: string | null
@@ -535,6 +536,7 @@ export type Database = {
           timezone: string
         }
         Insert: {
+          ai_chat_enabled?: boolean
           ai_provider?: string
           created_at?: string
           gemini_api_key?: string | null
@@ -553,6 +555,7 @@ export type Database = {
           timezone?: string
         }
         Update: {
+          ai_chat_enabled?: boolean
           ai_provider?: string
           created_at?: string
           gemini_api_key?: string | null

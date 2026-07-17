@@ -21,7 +21,31 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    const { ai_provider, api_key } = body as { ai_provider?: unknown; api_key?: string | null };
+    const { ai_provider, api_key, ai_chat_enabled } = body as {
+      ai_provider?: unknown;
+      api_key?: string | null;
+      ai_chat_enabled?: unknown;
+    };
+
+    if (ai_chat_enabled !== undefined && typeof ai_chat_enabled !== "boolean") {
+      return jsonResponse({ error: "ai_chat_enabled must be a boolean" }, { status: 400 });
+    }
+
+    const caller = createCallerClient(req.headers.get("Authorization"));
+    const { shopId } = await requireAdmin(caller);
+    const service = createServiceClient();
+
+    // Toggle-only call: flip the chatbot on/off without touching the
+    // provider/key. Deliberately does NOT require a configured key — a shop can
+    // turn the bot off (or back on) regardless of whether it has set one up yet.
+    if (ai_provider === undefined) {
+      if (typeof ai_chat_enabled !== "boolean") {
+        return jsonResponse({ error: "Nothing to update" }, { status: 400 });
+      }
+      const { error } = await service.from("shops").update({ ai_chat_enabled }).eq("id", shopId);
+      if (error) return jsonResponse({ error: error.message }, { status: 500 });
+      return jsonResponse({ ok: true, ai_chat_enabled });
+    }
 
     if (ai_provider !== "openai" && ai_provider !== "gemini") {
       return jsonResponse({ error: "ai_provider must be 'openai' or 'gemini'" }, { status: 400 });
@@ -34,11 +58,6 @@ Deno.serve(async (req: Request) => {
     }
     const provider = asAiProvider(ai_provider);
     const keyColumn = KEY_COLUMN[provider];
-
-    const caller = createCallerClient(req.headers.get("Authorization"));
-    const { shopId } = await requireAdmin(caller);
-
-    const service = createServiceClient();
     const { data: shop, error: shopError } = await service
       .from("shops")
       .select("ai_provider, openai_api_key, gemini_api_key")
@@ -76,7 +95,12 @@ Deno.serve(async (req: Request) => {
 
     const { error: updateError } = await service
       .from("shops")
-      .update({ ai_provider: provider, [keyColumn]: nextKey })
+      .update({
+        ai_provider: provider,
+        [keyColumn]: nextKey,
+        // Fold in a chat toggle if this same save carried one.
+        ...(typeof ai_chat_enabled === "boolean" ? { ai_chat_enabled } : {}),
+      })
       .eq("id", shopId);
     if (updateError) {
       return jsonResponse({ error: updateError.message }, { status: 500 });

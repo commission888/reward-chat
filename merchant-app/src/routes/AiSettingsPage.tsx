@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -65,7 +66,7 @@ export default function AiSettingsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("shops")
-        .select("ai_provider, openai_api_key, gemini_api_key, reply_templates")
+        .select("ai_provider, ai_chat_enabled, openai_api_key, gemini_api_key, reply_templates")
         .eq("id", shopId!)
         .single();
       if (error) throw error;
@@ -86,6 +87,39 @@ export default function AiSettingsPage() {
   // Whether the *currently selected* provider already has a stored key. Keys are
   // never echoed into the field, so this drives the badge and the placeholder.
   const configured = provider === "gemini" ? Boolean(shop?.gemini_api_key) : Boolean(shop?.openai_api_key);
+
+  // Chatbot on/off. Local state so the switch flips instantly; seeded once from
+  // the server (default on when the flag is absent).
+  const [chatEnabled, setChatEnabled] = useState(true);
+  const chatSeeded = useRef(false);
+  useEffect(() => {
+    if (shop && !chatSeeded.current) {
+      chatSeeded.current = true;
+      setChatEnabled(shop.ai_chat_enabled !== false);
+    }
+  }, [shop]);
+
+  const toggleChat = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase.functions.invoke("update-shop-ai-settings", {
+        body: { ai_chat_enabled: enabled },
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_data, enabled) => {
+      toast.success(enabled ? t("ai.chatOnToast") : t("ai.chatOffToast"));
+      queryClient.invalidateQueries({ queryKey: ["shop-ai", shopId] });
+    },
+    onError: (error, enabled) => {
+      setChatEnabled(!enabled); // revert the optimistic flip
+      void getFunctionErrorMessage(error, t("ai.errSave")).then((m) => toast.error(m));
+    },
+  });
+
+  function onToggleChat(enabled: boolean) {
+    setChatEnabled(enabled);
+    toggleChat.mutate(enabled);
+  }
 
   const save = useMutation({
     mutationFn: async () => {
@@ -117,6 +151,31 @@ export default function AiSettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("ai.title")} subtitle={t("ai.subtitle")} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("ai.chatToggleTitle")}</CardTitle>
+          <CardDescription>{t("ai.chatToggleHint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-4 rounded-md border border-border p-4">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="ai_chat_enabled" className="text-base">
+                {t("ai.chatToggleLabel")}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {chatEnabled ? t("ai.chatOn") : t("ai.chatOff")}
+              </p>
+            </div>
+            <Switch
+              id="ai_chat_enabled"
+              checked={chatEnabled}
+              disabled={isLoading || toggleChat.isPending}
+              onCheckedChange={onToggleChat}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

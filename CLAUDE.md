@@ -152,6 +152,8 @@ Things worth knowing before touching this:
 
 `update-shop-ai-settings` test-calls the chosen provider (`checkAiKey`) before storing a key, so a typo'd/expired key or an unpaid OpenAI account is rejected at entry rather than surfacing days later as a mysteriously silent bot. The key field is write-only in the UI: leaving it blank on save **keeps** the stored key (letting a shop switch back to an already-configured provider without re-typing), and a provider with no stored key can't be activated.
 
+**The chatbot has an on/off switch independent of the key** (`shops.ai_chat_enabled`, default true, `0022`): a shop that only wants automatic slip-crediting turns it off, and `line-webhook` then `continue`s past the text branch (no reply) while the image/slip branch keeps crediting points — the gate is `shop.ai_chat_enabled === false`, so a null/absent flag still answers. The `/settings/ai` toggle saves through the same `update-shop-ai-settings`, which has a **toggle-only path** (`{ ai_chat_enabled }` with no `ai_provider`) that flips the flag *without* requiring a configured key or running the provider-switch chunk-wipe.
+
 `update-shop-ai-settings` test-calls OpenAI before storing a key, so a typo'd or expired one is rejected at the point of entry rather than surfacing days later as a mysteriously silent bot.
 
 ## Bot reply wording is a per-shop setting (`0019_shop_reply_templates.sql`)

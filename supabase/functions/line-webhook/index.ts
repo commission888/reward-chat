@@ -75,6 +75,7 @@ type ShopRow = {
   line_channel_access_token: string;
   liff_id: string | null;
   ai_provider: string | null;
+  ai_chat_enabled: boolean | null;
   openai_api_key: string | null;
   gemini_api_key: string | null;
   reply_templates: unknown;
@@ -104,8 +105,8 @@ Deno.serve(async (req: Request) => {
     const { data: shop, error: shopError } = await service
       .from("shops")
       .select(
-        "id, line_channel_secret, line_channel_access_token, liff_id, ai_provider, openai_api_key, gemini_api_key, " +
-          "reply_templates, points_config, slip2go_api_secret, slip_receivers"
+        "id, line_channel_secret, line_channel_access_token, liff_id, ai_provider, ai_chat_enabled, " +
+          "openai_api_key, gemini_api_key, reply_templates, points_config, slip2go_api_secret, slip_receivers"
       )
       .eq("id", shopId)
       .single<ShopRow>();
@@ -154,6 +155,10 @@ Deno.serve(async (req: Request) => {
       // Slip2Go round-trip) in the background so we don't block on it
       // against LINE's short reply-token expiry window.
       if (event.message?.type === "text" && event.message.text) {
+        // The shop can switch the chatbot off (ai_chat_enabled = false) to stop
+        // it replying to text, while slip verification below keeps crediting
+        // points. Default-on: a null/absent flag still answers.
+        if (shop.ai_chat_enabled === false) continue;
         const text = event.message.text;
         // deno-lint-ignore no-explicit-any
         (globalThis as any).EdgeRuntime?.waitUntil(
