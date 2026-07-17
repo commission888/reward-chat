@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, QrCode, Trash2 } from "lucide-react";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { THAI_BANKS, MERCHANT_ACCOUNT_TYPES } from "@/lib/thaiBanks";
+import { decodeQrFromFile, extractKShopReceiver } from "@/lib/thaiQr";
 
 // Merchant/e-wallet types identify the receiver by a Merchant ID (KShop) or
 // wallet number, not a bank account number — so the number field relabels itself
@@ -138,6 +139,42 @@ export default function PaymentSettingsPage() {
 
   function removeRow(id: number) {
     setReceivers((rows) => rows.filter((r) => r._id !== id));
+  }
+
+  // Upload a shop's KShop / Thai QR Payment QR and pull the Merchant ID (KB...)
+  // straight out of it, so the merchant never has to hunt for a number a KShop
+  // account doesn't visibly have. The extracted value is exactly what Slip2Go
+  // matches on (verified against a live slip).
+  const qrInputRef = useRef<HTMLInputElement>(null);
+  async function handleQrFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // let the same file be re-picked after an error
+    if (!file) return;
+    try {
+      const payload = await decodeQrFromFile(file);
+      if (!payload) {
+        toast.error(t("pay.qrNoCode"));
+        return;
+      }
+      const receiver = extractKShopReceiver(payload);
+      if (!receiver) {
+        toast.error(t("pay.qrNoMerchant"));
+        return;
+      }
+      setReceivers((rows) => [
+        ...rows,
+        {
+          _id: nextRowId++,
+          account_type: receiver.account_type,
+          account_number: receiver.account_number,
+          account_name_th: "",
+          account_name_en: receiver.account_name_en,
+        },
+      ]);
+      toast.success(t("pay.qrAdded", { name: receiver.account_name_en || receiver.account_number }));
+    } catch {
+      toast.error(t("pay.qrError"));
+    }
   }
 
   const { data: verifications, isLoading: verificationsLoading } = useQuery({
@@ -275,15 +312,33 @@ export default function PaymentSettingsPage() {
               </div>
             ))}
 
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full sm:w-auto sm:self-start"
-              onClick={() => setReceivers((rows) => [...rows, emptyRow()])}
-            >
-              <Plus className="size-4" />
-              {t("pay.addAccount")}
-            </Button>
+            <input
+              ref={qrInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleQrFile}
+            />
+            <div className="flex flex-col gap-2 sm:flex-row sm:self-start">
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full sm:w-auto"
+                onClick={() => qrInputRef.current?.click()}
+              >
+                <QrCode className="size-4" />
+                {t("pay.uploadQr")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => setReceivers((rows) => [...rows, emptyRow()])}
+              >
+                <Plus className="size-4" />
+                {t("pay.addAccount")}
+              </Button>
+            </div>
 
             <Button type="submit" disabled={save.isPending} className="w-full sm:w-auto sm:self-start">
               {save.isPending ? t("common.saving") : t("common.save")}
