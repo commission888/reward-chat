@@ -527,10 +527,7 @@ export type Database = {
           openai_api_key: string | null
           points_config: Json
           reply_templates: Json
-          slip_receiver_account_name_en: string | null
-          slip_receiver_account_name_th: string | null
-          slip_receiver_account_number: string | null
-          slip_receiver_account_type: string | null
+          slip_receivers: Json
           slip2go_api_secret: string | null
           slug: string
           timezone: string
@@ -546,10 +543,7 @@ export type Database = {
           openai_api_key?: string | null
           points_config?: Json
           reply_templates?: Json
-          slip_receiver_account_name_en?: string | null
-          slip_receiver_account_name_th?: string | null
-          slip_receiver_account_number?: string | null
-          slip_receiver_account_type?: string | null
+          slip_receivers?: Json
           slip2go_api_secret?: string | null
           slug: string
           timezone?: string
@@ -565,10 +559,7 @@ export type Database = {
           openai_api_key?: string | null
           points_config?: Json
           reply_templates?: Json
-          slip_receiver_account_name_en?: string | null
-          slip_receiver_account_name_th?: string | null
-          slip_receiver_account_number?: string | null
-          slip_receiver_account_type?: string | null
+          slip_receivers?: Json
           slip2go_api_secret?: string | null
           slug?: string
           timezone?: string

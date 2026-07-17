@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Plus, Trash2 } from "lucide-react";
 import { getFunctionErrorMessage } from "@rewardchat/shared";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/auth/AuthProvider";
@@ -15,11 +16,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { THAI_BANKS } from "@/lib/thaiBanks";
+import { THAI_BANKS, MERCHANT_ACCOUNT_TYPES } from "@/lib/thaiBanks";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive"> = {
   credited: "default",
@@ -28,17 +31,44 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive"> = 
   error: "destructive",
 };
 
+// A receiving account row in the form. `_id` is a client-only stable key so
+// removing a row doesn't reshuffle React state across the others; it never gets
+// sent to the server.
+type ReceiverRow = {
+  _id: number;
+  account_type: string;
+  account_number: string;
+  account_name_th: string;
+  account_name_en: string;
+};
+
+let nextRowId = 1;
+function emptyRow(): ReceiverRow {
+  return { _id: nextRowId++, account_type: "", account_number: "", account_name_th: "", account_name_en: "" };
+}
+
+// The stored jsonb is an array of {account_type, account_number, ...}; tolerate a
+// bad/absent value rather than throwing in render.
+function rowsFromStored(value: unknown): ReceiverRow[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    const r = (item ?? {}) as Record<string, unknown>;
+    return {
+      _id: nextRowId++,
+      account_type: typeof r.account_type === "string" ? r.account_type : "",
+      account_number: typeof r.account_number === "string" ? r.account_number : "",
+      account_name_th: typeof r.account_name_th === "string" ? r.account_name_th : "",
+      account_name_en: typeof r.account_name_en === "string" ? r.account_name_en : "",
+    };
+  });
+}
+
 export default function PaymentSettingsPage() {
   const { profile } = useAuth();
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({
-    slip2go_api_secret: "",
-    slip_receiver_account_type: "",
-    slip_receiver_account_name_th: "",
-    slip_receiver_account_name_en: "",
-    slip_receiver_account_number: "",
-  });
+  const [apiSecret, setApiSecret] = useState("");
+  const [receivers, setReceivers] = useState<ReceiverRow[]>([]);
 
   // Seed the form from the server exactly once so a background refetch (e.g. React
   // Query's refetch-on-window-focus) can't clobber unsaved edits.
@@ -49,9 +79,7 @@ export default function PaymentSettingsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("shops")
-        .select(
-          "slip2go_api_secret, slip_receiver_account_type, slip_receiver_account_name_th, slip_receiver_account_name_en, slip_receiver_account_number"
-        )
+        .select("slip2go_api_secret, slip_receivers")
         .eq("id", profile!.shop_id!)
         .single();
       if (error) throw error;
@@ -63,19 +91,26 @@ export default function PaymentSettingsPage() {
   useEffect(() => {
     if (shop && !seeded.current) {
       seeded.current = true;
-      setForm({
-        slip2go_api_secret: shop.slip2go_api_secret ?? "",
-        slip_receiver_account_type: shop.slip_receiver_account_type ?? "",
-        slip_receiver_account_name_th: shop.slip_receiver_account_name_th ?? "",
-        slip_receiver_account_name_en: shop.slip_receiver_account_name_en ?? "",
-        slip_receiver_account_number: shop.slip_receiver_account_number ?? "",
-      });
+      setApiSecret(shop.slip2go_api_secret ?? "");
+      setReceivers(rowsFromStored(shop.slip_receivers));
     }
   }, [shop]);
 
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.functions.invoke("update-shop-payment-settings", { body: form });
+      // Drop rows the user never filled and strip the client-only _id before
+      // sending; the edge function re-validates and rejects half-filled rows.
+      const slip_receivers = receivers
+        .filter((r) => r.account_type.trim() || r.account_number.trim())
+        .map((r) => ({
+          account_type: r.account_type.trim(),
+          account_number: r.account_number.trim(),
+          account_name_th: r.account_name_th.trim(),
+          account_name_en: r.account_name_en.trim(),
+        }));
+      const { error } = await supabase.functions.invoke("update-shop-payment-settings", {
+        body: { slip2go_api_secret: apiSecret, slip_receivers },
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -90,6 +125,14 @@ export default function PaymentSettingsPage() {
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     save.mutate();
+  }
+
+  function updateRow(id: number, patch: Partial<ReceiverRow>) {
+    setReceivers((rows) => rows.map((r) => (r._id === id ? { ...r, ...patch } : r)));
+  }
+
+  function removeRow(id: number) {
+    setReceivers((rows) => rows.filter((r) => r._id !== id));
   }
 
   const { data: verifications, isLoading: verificationsLoading } = useQuery({
@@ -126,20 +169,14 @@ export default function PaymentSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* One column on a phone, two from sm up. The fields used to carry
-              fixed widths (w-72/w-64/w-56) inside a flex-wrap row, so on a narrow
-              screen they wrapped but kept their width — ragged edges, and w-72
-              overflowed the card on the smallest phones. Widths now come from the
-              grid, and max-w-3xl stops them stretching to silly lengths on a
-              desktop. */}
           <form className="flex max-w-3xl flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="slip2go_api_secret">{t("pay.apiSecret")}</Label>
               <Input
                 id="slip2go_api_secret"
                 type="password"
-                value={form.slip2go_api_secret}
-                onChange={(e) => setForm((f) => ({ ...f, slip2go_api_secret: e.target.value }))}
+                value={apiSecret}
+                onChange={(e) => setApiSecret(e.target.value)}
               />
             </div>
 
@@ -147,59 +184,97 @@ export default function PaymentSettingsPage() {
               {t("pay.warning")}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="slip_receiver_account_type">{t("pay.bank")}</Label>
-                <Select
-                  value={form.slip_receiver_account_type}
-                  onValueChange={(value) =>
-                    setForm((f) => ({ ...f, slip_receiver_account_type: value }))
-                  }
-                >
-                  {/* min-w-0 lets a long bank name shrink instead of forcing the
-                      grid column wider than the screen. */}
-                  <SelectTrigger id="slip_receiver_account_type" className="w-full min-w-0">
-                    <SelectValue placeholder={t("pay.selectBank")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {THAI_BANKS.map((bank) => (
-                      <SelectItem key={bank.code} value={bank.code}>
-                        {bank.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="slip_receiver_account_number">{t("pay.accountNumber")}</Label>
-                <Input
-                  id="slip_receiver_account_number"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={form.slip_receiver_account_number}
-                  onChange={(e) => setForm((f) => ({ ...f, slip_receiver_account_number: e.target.value }))}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="slip_receiver_account_name_th">{t("pay.accountNameTh")}</Label>
-                <Input
-                  id="slip_receiver_account_name_th"
-                  value={form.slip_receiver_account_name_th}
-                  onChange={(e) => setForm((f) => ({ ...f, slip_receiver_account_name_th: e.target.value }))}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="slip_receiver_account_name_en">{t("pay.accountNameEn")}</Label>
-                <Input
-                  id="slip_receiver_account_name_en"
-                  value={form.slip_receiver_account_name_en}
-                  onChange={(e) => setForm((f) => ({ ...f, slip_receiver_account_name_en: e.target.value }))}
-                />
-              </div>
+            <div className="flex flex-col gap-1">
+              <Label>{t("pay.receivers")}</Label>
+              <p className="text-sm text-muted-foreground">{t("pay.receiversHint")}</p>
             </div>
 
-            {/* Full-width on a phone, where a small button in a big empty row is
-                just a smaller tap target for no reason. */}
+            {receivers.map((row, index) => (
+              <div key={row._id} className="rounded-md border border-border bg-muted/30 p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    {t("pay.accountLabel", { n: String(index + 1) })}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => removeRow(row._id)}
+                  >
+                    <Trash2 className="size-4" />
+                    <span className="sr-only sm:not-sr-only sm:ml-1">{t("pay.removeAccount")}</span>
+                  </Button>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor={`account_type_${row._id}`}>{t("pay.accountType")}</Label>
+                    <Select
+                      value={row.account_type}
+                      onValueChange={(value) => updateRow(row._id, { account_type: value })}
+                    >
+                      <SelectTrigger id={`account_type_${row._id}`} className="w-full min-w-0">
+                        <SelectValue placeholder={t("pay.selectAccountType")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>{t("pay.merchantGroup")}</SelectLabel>
+                          {MERCHANT_ACCOUNT_TYPES.map((type) => (
+                            <SelectItem key={type.code} value={type.code}>
+                              {type.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        <SelectGroup>
+                          <SelectLabel>{t("pay.banksGroup")}</SelectLabel>
+                          {THAI_BANKS.map((bank) => (
+                            <SelectItem key={bank.code} value={bank.code}>
+                              {bank.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor={`account_number_${row._id}`}>{t("pay.accountNumber")}</Label>
+                    <Input
+                      id={`account_number_${row._id}`}
+                      autoComplete="off"
+                      value={row.account_number}
+                      onChange={(e) => updateRow(row._id, { account_number: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor={`account_name_th_${row._id}`}>{t("pay.accountNameTh")}</Label>
+                    <Input
+                      id={`account_name_th_${row._id}`}
+                      value={row.account_name_th}
+                      onChange={(e) => updateRow(row._id, { account_name_th: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor={`account_name_en_${row._id}`}>{t("pay.accountNameEn")}</Label>
+                    <Input
+                      id={`account_name_en_${row._id}`}
+                      value={row.account_name_en}
+                      onChange={(e) => updateRow(row._id, { account_name_en: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto sm:self-start"
+              onClick={() => setReceivers((rows) => [...rows, emptyRow()])}
+            >
+              <Plus className="size-4" />
+              {t("pay.addAccount")}
+            </Button>
+
             <Button type="submit" disabled={save.isPending} className="w-full sm:w-auto sm:self-start">
               {save.isPending ? t("common.saving") : t("common.save")}
             </Button>

@@ -6,6 +6,18 @@
 // on the Slip2Go dashboard's "บัญชีธนาคาร" page before adding it here.
 export type ThaiBank = { code: string; name: string };
 
+// Merchant/e-wallet receiver types. These are NOT banks: a QR payment to a
+// shop (K+ Shop, แม่มณี, Be Merchant) has no ordinary bank account number — the
+// slip's receiver comes back as bank "อื่นๆ (000)" and the account to match on
+// is the shop's Merchant ID (the KB... / ref1 value Slip2Go returns). Confirmed
+// against a live KShop slip: accountType "03000" + accountNumber = Merchant ID
+// matches (200200), a wrong Merchant ID is rejected (200401). "04000" is
+// TrueMoney Wallet, matched by wallet number.
+export const MERCHANT_ACCOUNT_TYPES: ThaiBank[] = [
+  { code: "03000", name: "ร้านค้า / KShop, แม่มณี, Be Merchant (Merchant ID)" },
+  { code: "04000", name: "TrueMoney Wallet" },
+];
+
 export const THAI_BANKS: ThaiBank[] = [
   { code: "01002", name: "ธนาคารกรุงเทพ (BBL)" },
   { code: "01004", name: "ธนาคารกสิกรไทย (KBANK)" },

@@ -78,10 +78,16 @@ type ShopRow = {
   reply_templates: unknown;
   points_config: { points_per_baht?: number; points_per_slip?: number; redeem_threshold?: number } | null;
   slip2go_api_secret: string | null;
-  slip_receiver_account_type: string | null;
-  slip_receiver_account_name_th: string | null;
-  slip_receiver_account_name_en: string | null;
-  slip_receiver_account_number: string | null;
+  slip_receivers: SlipReceiverRow[] | null;
+};
+
+// One accepted account (see 0020). A slip paid to ANY of a shop's receivers is
+// credited, since Slip2Go's checkReceiver array matches if any entry matches.
+type SlipReceiverRow = {
+  account_type?: string;
+  account_number?: string;
+  account_name_th?: string;
+  account_name_en?: string;
 };
 
 Deno.serve(async (req: Request) => {
@@ -97,8 +103,7 @@ Deno.serve(async (req: Request) => {
       .from("shops")
       .select(
         "id, line_channel_secret, line_channel_access_token, liff_id, openai_api_key, reply_templates, " +
-          "points_config, slip2go_api_secret, slip_receiver_account_type, slip_receiver_account_name_th, " +
-          "slip_receiver_account_name_en, slip_receiver_account_number"
+          "points_config, slip2go_api_secret, slip_receivers"
       )
       .eq("id", shopId)
       .single<ShopRow>();
@@ -330,16 +335,24 @@ async function handleSlipImage(params: {
 
     const imageBytes = await getMessageContent(accessToken, messageId);
 
-    const checkReceiver: Slip2GoCheckReceiver[] | undefined = shop.slip_receiver_account_number
-      ? [
-          {
-            accountType: shop.slip_receiver_account_type ?? "",
-            accountNameTH: shop.slip_receiver_account_name_th ?? undefined,
-            accountNameEN: shop.slip_receiver_account_name_en ?? undefined,
-            accountNumber: shop.slip_receiver_account_number,
-          },
-        ]
-      : undefined;
+    // Every configured account becomes one checkReceiver condition; Slip2Go
+    // accepts the slip if it matches any one (match-any confirmed against a live
+    // KShop slip). An account_type/number is all a match needs — KShop accounts
+    // (type "03000") carry no bank account number, only a Merchant ID, so we
+    // never require one. With no receivers configured Slip2Go only vouches the
+    // slip is genuine, not who it was paid to (the merchant-app warns of this).
+    const configuredReceivers = (shop.slip_receivers ?? []).filter(
+      (r) => r.account_type && r.account_number
+    );
+    const checkReceiver: Slip2GoCheckReceiver[] | undefined =
+      configuredReceivers.length > 0
+        ? configuredReceivers.map((r) => ({
+            accountType: r.account_type ?? "",
+            accountNumber: r.account_number,
+            accountNameTH: r.account_name_th ?? undefined,
+            accountNameEN: r.account_name_en ?? undefined,
+          }))
+        : undefined;
 
     const result = await verifySlipImage(imageBytes, shop.slip2go_api_secret!, {
       checkReceiver,
