@@ -16,17 +16,42 @@ export type ParsedQrReceiver = {
 // Draw the uploaded image onto a canvas and read the QR with jsQR (pure JS, so
 // it works in every browser — no native BarcodeDetector dependency). Returns the
 // raw EMVCo payload string, or null if no QR could be found in the image.
+//
+// jsQR silently fails on large images — a full-res phone photo of a KShop
+// standee (≈1900×2900) reads as "no QR", while the very same picture scaled down
+// decodes cleanly (error correction rides over the centre logo). So we don't
+// feed it the original: we try a few capped longest-side widths, smaller ones
+// too since a QR that fills only part of the frame needs more shrinking, and
+// stop at the first that decodes.
+const QR_DECODE_WIDTHS = [1000, 800, 600, 500];
+
 export async function decodeQrFromFile(file: File): Promise<string | null> {
   const bitmap = await createImageBitmap(file);
   try {
+    const longest = Math.max(bitmap.width, bitmap.height);
     const canvas = document.createElement("canvas");
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
-    ctx.drawImage(bitmap, 0, 0);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    return jsQR(imageData.data, imageData.width, imageData.height)?.data ?? null;
+
+    // Never upscale (min with 1); skip a target that lands on a size already
+    // tried, so a small original is decoded once and a large one steps down
+    // through the distinct smaller sizes.
+    const tried = new Set<number>();
+    for (const target of QR_DECODE_WIDTHS) {
+      const scale = Math.min(1, target / longest);
+      const w = Math.round(bitmap.width * scale);
+      const h = Math.round(bitmap.height * scale);
+      if (tried.has(w)) continue;
+      tried.add(w);
+      canvas.width = w;
+      canvas.height = h;
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const found = jsQR(imageData.data, w, h, { inversionAttempts: "attemptBoth" });
+      if (found?.data) return found.data;
+    }
+    return null;
   } finally {
     bitmap.close();
   }
