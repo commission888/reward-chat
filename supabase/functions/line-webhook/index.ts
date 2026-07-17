@@ -9,7 +9,7 @@ import {
   getMessageContent,
   getUserProfile,
 } from "../_shared/line.ts";
-import { createEmbedding, createChatReply } from "../_shared/openai.ts";
+import { asAiProvider, createEmbedding, createChatReply, type AiProvider } from "../_shared/ai.ts";
 import { verifySlipImage, describeSlip2GoCode, type Slip2GoCheckReceiver } from "../_shared/slip2go.ts";
 import { parseReplyTemplates, resolveReplyTemplate, type ReplyTemplates } from "../_shared/replyTemplates.ts";
 import { buildSlipCard, slipCardAltText } from "./slipCard.ts";
@@ -74,7 +74,9 @@ type ShopRow = {
   line_channel_secret: string;
   line_channel_access_token: string;
   liff_id: string | null;
+  ai_provider: string | null;
   openai_api_key: string | null;
+  gemini_api_key: string | null;
   reply_templates: unknown;
   points_config: { points_per_baht?: number; points_per_slip?: number; redeem_threshold?: number } | null;
   slip2go_api_secret: string | null;
@@ -102,8 +104,8 @@ Deno.serve(async (req: Request) => {
     const { data: shop, error: shopError } = await service
       .from("shops")
       .select(
-        "id, line_channel_secret, line_channel_access_token, liff_id, openai_api_key, reply_templates, " +
-          "points_config, slip2go_api_secret, slip_receivers"
+        "id, line_channel_secret, line_channel_access_token, liff_id, ai_provider, openai_api_key, gemini_api_key, " +
+          "reply_templates, points_config, slip2go_api_secret, slip_receivers"
       )
       .eq("id", shopId)
       .single<ShopRow>();
@@ -136,6 +138,11 @@ Deno.serve(async (req: Request) => {
 
     const accessToken = shop.line_channel_access_token;
     const templates = parseReplyTemplates(shop.reply_templates);
+    // The active provider and its key drive the RAG chat path. A shop that
+    // switched provider but hasn't re-set a key has a null key here, which
+    // handleMessage degrades to the canned reply rather than throwing.
+    const aiProvider = asAiProvider(shop.ai_provider);
+    const aiKey = aiProvider === "gemini" ? shop.gemini_api_key : shop.openai_api_key;
 
     for (const event of events) {
       if (event.type !== "message") continue;
@@ -156,7 +163,8 @@ Deno.serve(async (req: Request) => {
             text,
             replyToken,
             accessToken,
-            apiKey: shop.openai_api_key,
+            provider: aiProvider,
+            apiKey: aiKey,
             templates,
           })
         );
@@ -183,10 +191,11 @@ async function handleMessage(params: {
   text: string;
   replyToken: string;
   accessToken: string;
+  provider: AiProvider;
   apiKey: string | null;
   templates: ReplyTemplates;
 }) {
-  const { shopId, userId, text, replyToken, accessToken, apiKey, templates } = params;
+  const { shopId, userId, text, replyToken, accessToken, provider, apiKey, templates } = params;
   const service = createServiceClient();
 
   try {
@@ -212,10 +221,10 @@ async function handleMessage(params: {
     // something to tell the customer about, so it degrades to the same canned
     // reply as "no matching document" instead of throwing into that void.
     if (!apiKey) {
-      console.warn(`line-webhook: shop ${shopId} has no openai_api_key — answering with the canned reply`);
+      console.warn(`line-webhook: shop ${shopId} has no ${provider} api key — answering with the canned reply`);
       replyText = noMatchReply(text, templates);
     } else {
-      const queryEmbedding = await createEmbedding(text, apiKey);
+      const queryEmbedding = await createEmbedding(text, provider, apiKey);
       const { data: matches, error: matchError } = await service.rpc("match_document_chunks", {
         p_shop_id: shopId,
         p_query_embedding: queryEmbedding,
@@ -246,7 +255,7 @@ async function handleMessage(params: {
           "You are a helpful assistant for this shop. Answer the customer's question using ONLY the context " +
           "below. If the answer isn't in the context, say you don't have that information. " +
           "Always reply in the same language the customer wrote their question in.\n\nContext:\n" + context;
-        replyText = await createChatReply(systemPrompt, text, apiKey);
+        replyText = await createChatReply(systemPrompt, text, provider, apiKey);
       }
     }
 

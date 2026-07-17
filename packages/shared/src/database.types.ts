@@ -517,7 +517,9 @@ export type Database = {
       }
       shops: {
         Row: {
+          ai_provider: string
           created_at: string
+          gemini_api_key: string | null
           id: string
           liff_id: string | null
           line_channel_access_token: string | null
@@ -533,7 +535,9 @@ export type Database = {
           timezone: string
         }
         Insert: {
+          ai_provider?: string
           created_at?: string
+          gemini_api_key?: string | null
           id?: string
           liff_id?: string | null
           line_channel_access_token?: string | null
@@ -549,7 +553,9 @@ export type Database = {
           timezone?: string
         }
         Update: {
+          ai_provider?: string
           created_at?: string
+          gemini_api_key?: string | null
           id?: string
           liff_id?: string | null
           line_channel_access_token?: string | null

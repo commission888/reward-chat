@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -18,8 +18,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-const OPENAI_KEYS_URL = "https://platform.openai.com/api-keys";
+type AiProvider = "openai" | "gemini";
+
+// Per-provider chrome for the key card: where to get a key, and the labels/hints
+// (all routed through t()). Gemini's dashboard hands out a free key.
+const PROVIDER_META: Record<AiProvider, { keysUrl: string; dashKey: string }> = {
+  openai: { keysUrl: "https://platform.openai.com/api-keys", dashKey: "ai.openDashboardOpenai" },
+  gemini: { keysUrl: "https://aistudio.google.com/apikey", dashKey: "ai.openDashboardGemini" },
+};
 
 // Grouped for the form only — the two groups differ in a way the shop needs to
 // see: chat replies come in a th/en pair because the customer's own text says
@@ -43,13 +57,15 @@ export default function AiSettingsPage() {
   const queryClient = useQueryClient();
   const shopId = profile?.shop_id ?? null;
   const [key, setKey] = useState("");
+  const [provider, setProvider] = useState<AiProvider>("openai");
+  const providerSeeded = useRef(false);
 
   const { data: shop, isLoading } = useQuery({
     queryKey: ["shop-ai", shopId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("shops")
-        .select("openai_api_key, reply_templates")
+        .select("ai_provider, openai_api_key, gemini_api_key, reply_templates")
         .eq("id", shopId!)
         .single();
       if (error) throw error;
@@ -58,18 +74,34 @@ export default function AiSettingsPage() {
     enabled: Boolean(shopId),
   });
 
-  const configured = Boolean(shop?.openai_api_key);
+  // Seed the dropdown from the saved provider once, then leave it under the
+  // user's control (a background refetch mustn't yank their selection back).
+  useEffect(() => {
+    if (shop && !providerSeeded.current) {
+      providerSeeded.current = true;
+      setProvider(shop.ai_provider === "gemini" ? "gemini" : "openai");
+    }
+  }, [shop]);
+
+  // Whether the *currently selected* provider already has a stored key. Keys are
+  // never echoed into the field, so this drives the badge and the placeholder.
+  const configured = provider === "gemini" ? Boolean(shop?.gemini_api_key) : Boolean(shop?.openai_api_key);
 
   const save = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.functions.invoke("update-shop-ai-settings", {
-        body: { openai_api_key: key.trim() === "" ? null : key.trim() },
+      const trimmed = key.trim();
+      const { data, error } = await supabase.functions.invoke("update-shop-ai-settings", {
+        // Blank field = keep the stored key for this provider (it's write-only),
+        // so send api_key only when the admin actually typed one.
+        body: { ai_provider: provider, ...(trimmed === "" ? {} : { api_key: trimmed }) },
       });
       if (error) throw error;
+      return data as { reingest_required?: boolean } | null;
     },
-    onSuccess: () => {
-      toast.success(key.trim() === "" ? t("ai.cleared") : t("ai.saved"));
+    onSuccess: (data) => {
+      toast.success(t("ai.saved"));
       setKey("");
+      if (data?.reingest_required) toast.warning(t("ai.reingestWarning"));
       queryClient.invalidateQueries({ queryKey: ["shop-ai", shopId] });
     },
     onError: (error) => {
@@ -104,14 +136,27 @@ export default function AiSettingsPage() {
           )}
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="openai_api_key">{t("ai.keyLabel")}</Label>
+              <Label htmlFor="ai_provider">{t("ai.providerLabel")}</Label>
+              <Select value={provider} onValueChange={(v) => setProvider(v as AiProvider)}>
+                <SelectTrigger id="ai_provider" className="w-full min-w-0 sm:w-72">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="openai">{t("ai.providerOpenai")}</SelectItem>
+                  <SelectItem value="gemini">{t("ai.providerGemini")}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">{t("ai.providerHint")}</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ai_api_key">{t("ai.keyLabel")}</Label>
               <Input
-                id="openai_api_key"
+                id="ai_api_key"
                 type="password"
                 autoComplete="off"
                 // The saved key is never echoed back into this field — it stays
                 // write-only from the UI's side, and the badge above is how you
-                // tell whether one is stored.
+                // tell whether one is stored. Blank on save keeps the stored key.
                 placeholder={configured ? t("ai.keyPlaceholderSet") : t("ai.keyPlaceholder")}
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
@@ -123,8 +168,8 @@ export default function AiSettingsPage() {
                 {save.isPending ? t("ai.checking") : t("common.save")}
               </Button>
               <Button asChild variant="outline">
-                <a href={OPENAI_KEYS_URL} target="_blank" rel="noreferrer">
-                  {t("ai.openDashboard")}
+                <a href={PROVIDER_META[provider].keysUrl} target="_blank" rel="noreferrer">
+                  {t(PROVIDER_META[provider].dashKey)}
                 </a>
               </Button>
             </div>

@@ -1,6 +1,6 @@
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
 import { createCallerClient, createServiceClient } from "../_shared/supabaseClients.ts";
-import { createEmbeddings } from "../_shared/openai.ts";
+import { asAiProvider, createEmbeddings } from "../_shared/ai.ts";
 
 const CHUNK_SIZE_WORDS = 600; // rough proxy for ~500-800 tokens
 const CHUNK_OVERLAP_WORDS = 100;
@@ -49,21 +49,26 @@ Deno.serve(async (req: Request) => {
 
     service = createServiceClient();
 
-    // The shop pays for its own embeddings. Check before marking the file
-    // "processing" so a missing key reads as "you haven't set this up" rather
-    // than a file stuck mid-flight.
+    // The shop pays for its own embeddings (or uses Gemini's free tier). Check
+    // before marking the file "processing" so a missing key reads as "you haven't
+    // set this up" rather than a file stuck mid-flight. The provider chosen here
+    // must be the same one line-webhook uses at query time — both read
+    // shops.ai_provider — or retrieval finds nothing.
     const { data: shop } = await service
       .from("shops")
-      .select("openai_api_key")
+      .select("ai_provider, openai_api_key, gemini_api_key")
       .eq("id", file.shop_id)
       .single();
-    if (!shop?.openai_api_key) {
+    const provider = asAiProvider(shop?.ai_provider);
+    const apiKey = provider === "gemini" ? shop?.gemini_api_key : shop?.openai_api_key;
+    if (!apiKey) {
+      const label = provider === "gemini" ? "Gemini" : "OpenAI";
       await service
         .from("files")
-        .update({ status: "failed", error_message: "No OpenAI API key configured for this shop" })
+        .update({ status: "failed", error_message: `No ${label} API key configured for this shop` })
         .eq("id", file_id);
       return jsonResponse(
-        { error: "Add your shop's OpenAI API key in AI settings before uploading documents." },
+        { error: `Add your shop's ${label} API key in AI settings before uploading documents.` },
         { status: 400 }
       );
     }
@@ -81,7 +86,7 @@ Deno.serve(async (req: Request) => {
 
     for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
       const batch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
-      const embeddings = await createEmbeddings(batch, shop.openai_api_key);
+      const embeddings = await createEmbeddings(batch, provider, apiKey);
       const rows = batch.map((content, j) => ({
         shop_id: file.shop_id,
         file_id,

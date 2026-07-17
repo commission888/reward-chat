@@ -93,27 +93,34 @@ export const translations: Record<Lang, Record<string, string>> = {
     "kb.noShopContext": "No shop context",
 
     "ai.title": "AI settings",
-    "ai.subtitle": "Your shop's own OpenAI key powers the chatbot's answers.",
-    "ai.keyTitle": "OpenAI API key",
+    "ai.subtitle": "Your shop's chatbot answers using the AI provider you pick below.",
+    "ai.keyTitle": "AI provider & key",
     "ai.keyHint":
-      "Used to read your uploaded documents and write the chatbot's replies. Usage is billed to your own OpenAI account. Slip verification does not use this key and keeps working without it.",
+      "Reads your uploaded documents and writes the chatbot's replies. Slip verification does not use AI and keeps working without a key.",
+    "ai.providerLabel": "AI provider",
+    "ai.providerOpenai": "OpenAI (paid)",
+    "ai.providerGemini": "Google Gemini (free tier)",
+    "ai.providerHint":
+      "Gemini has a free tier — get a key at no cost. Switching provider re-indexes your knowledge base, so you'll need to re-upload your documents after changing it.",
     "ai.keyLabel": "API key",
-    "ai.keyPlaceholder": "sk-...",
-    "ai.keyPlaceholderSet": "A key is saved — enter a new one to replace it",
+    "ai.keyPlaceholder": "Paste your API key",
+    "ai.keyPlaceholderSet": "A key is saved — enter a new one to replace it, or leave blank to keep it",
     "ai.keySource":
-      "OpenAI dashboard → API keys → Create new secret key. Your account also needs credit — OpenAI gives out keys before you've paid them anything, and a key with no credit can't answer a single question.",
+      "Get a key from your provider's dashboard using the button below. For OpenAI your account also needs credit — a key with no credit can't answer a single question. Gemini's free tier works right away.",
     "ai.statusSet": "Connected",
     "ai.statusMissing": "Not set up",
     "ai.warnMissing":
       "Until you add a key, your chatbot replies that it doesn't have the information, and document uploads will fail.",
     "ai.checking": "Checking key...",
-    "ai.saved": "Key saved and verified",
+    "ai.saved": "Saved and verified",
     "ai.cleared": "Key removed",
     "ai.errSave": "Could not save the key",
-    "ai.openDashboard": "Open OpenAI dashboard",
+    "ai.reingestWarning": "Provider changed — please re-upload your knowledge-base documents so they work with the new provider.",
+    "ai.openDashboardOpenai": "Open OpenAI dashboard",
+    "ai.openDashboardGemini": "Get a free Gemini key",
     "ai.costTitle": "What you'll be charged for",
     "ai.costBody":
-      "Two things: reading each document you upload (once per upload), and each customer question your bot answers. Both are billed by OpenAI directly to the payment method on your OpenAI account — not through RewardChat.",
+      "With OpenAI: reading each uploaded document and each customer question your bot answers, billed by OpenAI to your own account. With Google Gemini: the free tier covers normal shop usage at no cost, subject to Google's rate limits.",
 
     "replies.title": "Bot replies",
     "replies.hint":
@@ -428,27 +435,34 @@ export const translations: Record<Lang, Record<string, string>> = {
     "kb.noShopContext": "ไม่พบข้อมูลร้าน",
 
     "ai.title": "ตั้งค่า AI",
-    "ai.subtitle": "แชทบอทของร้านคุณทำงานด้วย OpenAI key ของร้านเอง",
-    "ai.keyTitle": "OpenAI API key",
+    "ai.subtitle": "แชทบอทของร้านตอบคำถามด้วยผู้ให้บริการ AI ที่คุณเลือกด้านล่าง",
+    "ai.keyTitle": "ผู้ให้บริการ AI และ key",
     "ai.keyHint":
-      "ใช้อ่านเอกสารที่คุณอัปโหลดและใช้เขียนคำตอบของแชทบอท ค่าใช้จ่ายเรียกเก็บที่บัญชี OpenAI ของคุณเอง ส่วนการตรวจสลิปไม่ได้ใช้ key นี้ ยังทำงานได้ตามปกติแม้ไม่ใส่",
+      "ใช้อ่านเอกสารที่อัปโหลดและเขียนคำตอบของแชทบอท ส่วนการตรวจสลิปไม่ใช้ AI ทำงานได้แม้ไม่มี key",
+    "ai.providerLabel": "ผู้ให้บริการ AI",
+    "ai.providerOpenai": "OpenAI (เสียเงิน)",
+    "ai.providerGemini": "Google Gemini (มีแพ็กเกจฟรี)",
+    "ai.providerHint":
+      "Gemini มีแพ็กเกจฟรี ขอ key ได้โดยไม่มีค่าใช้จ่าย — การเปลี่ยนผู้ให้บริการต้องสร้างดัชนีคลังความรู้ใหม่ ดังนั้นต้องอัปโหลดเอกสารใหม่หลังเปลี่ยน",
     "ai.keyLabel": "API key",
-    "ai.keyPlaceholder": "sk-...",
-    "ai.keyPlaceholderSet": "มี key บันทึกไว้แล้ว ใส่ตัวใหม่เพื่อเปลี่ยน",
+    "ai.keyPlaceholder": "วาง API key ของคุณ",
+    "ai.keyPlaceholderSet": "มี key บันทึกไว้แล้ว ใส่ตัวใหม่เพื่อเปลี่ยน หรือเว้นว่างเพื่อใช้ตัวเดิม",
     "ai.keySource":
-      "หน้า OpenAI dashboard → API keys → Create new secret key และบัญชีต้องมีเครดิตด้วย OpenAI แจก key ให้ตั้งแต่ยังไม่ได้จ่ายเงิน แต่ key ที่ไม่มีเครดิตจะตอบคำถามไม่ได้เลยสักข้อ",
+      "ขอ key จากหน้า dashboard ของผู้ให้บริการด้วยปุ่มด้านล่าง สำหรับ OpenAI บัญชีต้องมีเครดิตด้วย ไม่งั้นตอบไม่ได้เลย ส่วน Gemini แพ็กเกจฟรีใช้งานได้ทันที",
     "ai.statusSet": "เชื่อมต่อแล้ว",
     "ai.statusMissing": "ยังไม่ได้ตั้งค่า",
     "ai.warnMissing":
       "ถ้ายังไม่ใส่ key แชทบอทจะตอบลูกค้าว่าไม่มีข้อมูล และการอัปโหลดเอกสารจะไม่สำเร็จ",
     "ai.checking": "กำลังตรวจสอบ key...",
-    "ai.saved": "บันทึกและตรวจสอบ key เรียบร้อย",
+    "ai.saved": "บันทึกและตรวจสอบเรียบร้อย",
     "ai.cleared": "ลบ key แล้ว",
     "ai.errSave": "บันทึก key ไม่สำเร็จ",
-    "ai.openDashboard": "เปิดหน้า OpenAI dashboard",
+    "ai.reingestWarning": "เปลี่ยนผู้ให้บริการแล้ว — กรุณาอัปโหลดเอกสารในคลังความรู้ใหม่ เพื่อให้ใช้งานกับผู้ให้บริการใหม่ได้",
+    "ai.openDashboardOpenai": "เปิดหน้า OpenAI dashboard",
+    "ai.openDashboardGemini": "ขอ key Gemini ฟรี",
     "ai.costTitle": "สิ่งที่คุณจะถูกเรียกเก็บเงิน",
     "ai.costBody":
-      "มีสองอย่าง: การอ่านเอกสารแต่ละไฟล์ที่อัปโหลด (คิดครั้งเดียวต่อการอัปโหลด) และทุกคำถามที่บอทตอบลูกค้า ทั้งสองอย่าง OpenAI เรียกเก็บจากบัตรในบัญชี OpenAI ของคุณโดยตรง ไม่ได้ผ่าน RewardChat",
+      "กรณี OpenAI: คิดเงินตอนอ่านเอกสารที่อัปโหลด และตอนบอทตอบคำถามลูกค้าแต่ละครั้ง โดย OpenAI เรียกเก็บจากบัญชีคุณเอง กรณี Google Gemini: แพ็กเกจฟรีครอบคลุมการใช้งานร้านทั่วไปโดยไม่มีค่าใช้จ่าย (ภายใต้ limit ของ Google)",
 
     "replies.title": "ข้อความตอบของบอท",
     "replies.hint":
