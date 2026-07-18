@@ -141,10 +141,10 @@ export default function PaymentSettingsPage() {
     setReceivers((rows) => rows.filter((r) => r._id !== id));
   }
 
-  // Upload a shop's KShop / Thai QR Payment QR and pull the Merchant ID (KB...)
-  // straight out of it, so the merchant never has to hunt for a number a KShop
-  // account doesn't visibly have. The extracted value is exactly what Slip2Go
-  // matches on (verified against a live slip).
+  // Upload a shop's merchant QR (KShop, แม่มณี, Thai QR Payment) and pull the
+  // Merchant ID straight out of it, so the merchant never has to hunt for a
+  // number the account doesn't visibly have. The extracted value is what Slip2Go
+  // matches on (KShop verified against a live slip; confirm แม่มณี once).
   const qrInputRef = useRef<HTMLInputElement>(null);
   async function handleQrFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
